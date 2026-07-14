@@ -1,0 +1,27 @@
+// Prisma schema for MedCabinet.
+// Only Medication lives here for now — UsageLog and Prescription are added in later phases.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Medication {
+  id             Int      @id @default(autoincrement())
+  brandName      String
+  genericName    String?
+  productType    String // "OTC" | "PRESCRIPTION"
+  indications    String
+  purpose        String?
+  warnings       String?
+  dosage         String?
+  expirationDate String?
+  compartment    Int? // 1–12, or null while pending assignment
+  status         String   @default("active") // "active" | "pending_review"
+  addedAt        DateTime @default(now())
+  rawLabelText   String? // OCR dump from hardware scans (Phase 4)
+}

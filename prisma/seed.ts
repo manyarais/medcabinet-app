@@ -20,7 +20,7 @@ const medications = [
     dosage:
       "Take 2 tablets (650 mg) every 6 hours while symptoms last. Do not take more than 6 tablets in 24 hours.",
     expirationDate: "2027-06",
-    compartment: 1,
+    compartment: 1, // Module A medium
     status: "active",
   },
   {
@@ -35,7 +35,7 @@ const medications = [
     dosage:
       "Take 1 tablet every 4 to 6 hours while symptoms persist. If pain or fever does not respond, 2 tablets may be used. Do not exceed 6 tablets in 24 hours.",
     expirationDate: "2027-03",
-    compartment: 7, // Module A thin
+    compartment: 9, // Module A thin
     status: "active",
   },
   {
@@ -50,7 +50,7 @@ const medications = [
     dosage:
       "Adults and children 6 years and over: 1 tablet daily. Do not take more than 1 tablet in 24 hours.",
     expirationDate: "2026-12",
-    compartment: 9, // Module A big (assignable storage)
+    compartment: 11, // Module B thin
     status: "active",
   },
   {
@@ -65,7 +65,7 @@ const medications = [
     dosage:
       "Chew 2-4 tablets as symptoms occur. Do not take more than 10 tablets in a 24-hour period.",
     expirationDate: "2028-01",
-    compartment: 10, // Module B medium
+    compartment: 13, // Module B medium
     status: "active",
   },
   {
@@ -80,7 +80,7 @@ const medications = [
     dosage:
       "As directed by your physician. Typical adult dose: 250–500 mg every 8 hours.",
     expirationDate: "2026-09",
-    compartment: 12, // Module B medium
+    compartment: 15, // Module B big (assignable)
     status: "active",
   },
   {
@@ -95,7 +95,7 @@ const medications = [
     dosage:
       "Chew or dissolve in mouth: 2 tablets every 1/2 to 1 hour as needed. Do not exceed 8 doses (16 tablets) in 24 hours.",
     expirationDate: "2027-08",
-    compartment: 16, // Module B thin
+    compartment: 17, // Module B medium
     status: "active",
   },
 ];

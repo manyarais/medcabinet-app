@@ -14,8 +14,7 @@ export type CompartmentConfig = {
 /**
  * Two modules, 18 bays total.
  * Module A = 1–9, Module B = 10–18.
- * Medium: 1–6, 10–15 | Thin: 7–8, 16–17 | Big: 9, 18
- * Scanner = 18 only (9 is assignable big storage).
+ * Medium: 1–8, 13–14, 16–17 | Thin: 9–12 | Big: 15 | Scanner: 18
  */
 export const COMPARTMENTS: CompartmentConfig[] = [
   // Module A
@@ -25,18 +24,18 @@ export const COMPARTMENTS: CompartmentConfig[] = [
   { number: 4, size: "medium", isScanner: false, module: "A" },
   { number: 5, size: "medium", isScanner: false, module: "A" },
   { number: 6, size: "medium", isScanner: false, module: "A" },
-  { number: 7, size: "thin", isScanner: false, module: "A" },
-  { number: 8, size: "thin", isScanner: false, module: "A" },
-  { number: 9, size: "big", isScanner: false, module: "A" },
+  { number: 7, size: "medium", isScanner: false, module: "A" },
+  { number: 8, size: "medium", isScanner: false, module: "A" },
+  { number: 9, size: "thin", isScanner: false, module: "A" },
   // Module B
-  { number: 10, size: "medium", isScanner: false, module: "B" },
-  { number: 11, size: "medium", isScanner: false, module: "B" },
-  { number: 12, size: "medium", isScanner: false, module: "B" },
+  { number: 10, size: "thin", isScanner: false, module: "B" },
+  { number: 11, size: "thin", isScanner: false, module: "B" },
+  { number: 12, size: "thin", isScanner: false, module: "B" },
   { number: 13, size: "medium", isScanner: false, module: "B" },
   { number: 14, size: "medium", isScanner: false, module: "B" },
-  { number: 15, size: "medium", isScanner: false, module: "B" },
-  { number: 16, size: "thin", isScanner: false, module: "B" },
-  { number: 17, size: "thin", isScanner: false, module: "B" },
+  { number: 15, size: "big", isScanner: false, module: "B" },
+  { number: 16, size: "medium", isScanner: false, module: "B" },
+  { number: 17, size: "medium", isScanner: false, module: "B" },
   { number: 18, size: "big", isScanner: true, module: "B" },
 ];
 

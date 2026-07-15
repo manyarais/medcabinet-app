@@ -64,7 +64,7 @@ curl -X POST http://localhost:3000/api/scan \
 
 ## Phase 2 quick test
 
-- Cabinet grid: [http://localhost:3000/cabinet](http://localhost:3000/cabinet) — compartments 1–8 plus a distinct Scanner cell (#9).
+- Cabinet grid: [http://localhost:3000/cabinet](http://localhost:3000/cabinet) — Module A (1–9) and Module B (10–18); **#18** is the Scanner cell. Compartment **9** is assignable big storage.
 - Add: search a med not in the seed → detail → Add to cabinet (empty slot). Trying an occupied slot shows a clear error.
 - Edit / Remove: open a seeded med from the cabinet grid → Edit fields or Remove from cabinet.
 

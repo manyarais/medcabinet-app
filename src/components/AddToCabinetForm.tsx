@@ -3,7 +3,7 @@
 // Add-to-cabinet form on the medication detail page (Phase 2).
 // Warns when the chosen compartment is already occupied; never overwrites.
 
-import { assignableCompartments } from "@/lib/compartments";
+import { assignableCompartments, getCompartmentConfig } from "@/lib/compartments";
 import type { DrugResult } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
@@ -101,9 +101,10 @@ export function AddToCabinetForm({ drug, occupied }: Props) {
         >
           {slots.map((n) => {
             const takenBy = occupiedMap.get(n);
+            const size = getCompartmentConfig(n)?.size ?? "";
             return (
               <option key={n} value={n}>
-                {n}
+                {n} ({size})
                 {takenBy ? ` — occupied by ${takenBy}` : " — empty"}
               </option>
             );

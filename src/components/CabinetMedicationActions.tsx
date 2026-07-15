@@ -2,7 +2,7 @@
 
 // Edit + remove actions for a medication already stored in the cabinet (Phase 2).
 
-import { assignableCompartments } from "@/lib/compartments";
+import { assignableCompartments, getCompartmentConfig } from "@/lib/compartments";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
@@ -179,9 +179,10 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
                 const other = occupied.find(
                   (item) => item.compartment === n && item.id !== medication.id,
                 );
+                const size = getCompartmentConfig(n)?.size ?? "";
                 return (
                   <option key={n} value={n}>
-                    {n}
+                    {n} ({size})
                     {other
                       ? ` — occupied by ${other.brandName}`
                       : n === medication.compartment

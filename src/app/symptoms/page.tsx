@@ -1,10 +1,18 @@
-// Temporary Symptoms stub so nav works before Phase 3 lands in this session.
+// Symptom lookup page (Phase 3).
 
-export default function SymptomsStubPage() {
+import { SymptomSearch } from "@/components/SymptomSearch";
+
+export default function SymptomsPage() {
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-8">
-      <h1 className="text-2xl font-semibold text-zinc-900">Symptoms</h1>
-      <p className="mt-2 text-sm text-zinc-600">Symptom lookup arrives in Phase 3.</p>
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold text-zinc-900">Symptoms</h1>
+        <p className="mt-1 text-sm text-zinc-600">
+          Shows OTC medications already in your cabinet whose labels mention what you type.
+          This is not medical advice.
+        </p>
+      </header>
+      <SymptomSearch />
     </main>
   );
 }

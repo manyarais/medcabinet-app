@@ -53,7 +53,7 @@ curl -X POST http://localhost:3000/api/scan \
 | RxNorm / openFDA helpers | `src/lib/rxnorm.ts`, `src/lib/openfda.ts`, `src/lib/drugs.ts` |
 | **Phase 1** — search API, home search, detail page | `src/app/api/drugs/search/`, `src/app/page.tsx`, `src/app/drugs/[slug]/` |
 | **Phase 2** — cabinet grid, add / edit / remove | `src/app/cabinet/`, `src/app/api/cabinet/`, `src/lib/compartments.ts`, `src/components/AddToCabinetForm.tsx`, `src/components/CabinetMedicationActions.tsx` |
-| Phase 3 — symptom lookup | _(not built yet)_ |
+| **Phase 3** — symptom lookup + usage log | `src/app/symptoms/`, `src/app/api/symptoms/`, `src/lib/symptoms.ts`, `src/components/SymptomSearch.tsx` |
 | Phase 4 — `POST /api/scan` + review | _(not built yet)_ |
 | Phase 5 — prescription reminders | _(stretch — not built yet)_ |
 
@@ -67,3 +67,10 @@ curl -X POST http://localhost:3000/api/scan \
 - Cabinet grid: [http://localhost:3000/cabinet](http://localhost:3000/cabinet) — compartments 1–8 plus a distinct Scanner cell (#9).
 - Add: search a med not in the seed → detail → Add to cabinet (empty slot). Trying an occupied slot shows a clear error.
 - Edit / Remove: open a seeded med from the cabinet grid → Edit fields or Remove from cabinet.
+
+## Phase 3 quick test
+
+- Symptoms: [http://localhost:3000/symptoms](http://localhost:3000/symptoms)
+- `headache` → seeded OTC pain relievers (e.g. Tylenol, Advil); Amoxicillin must never appear.
+- `broken arm` → empty-state message only.
+- Tap **Take this** → row appears under “You've used before”.

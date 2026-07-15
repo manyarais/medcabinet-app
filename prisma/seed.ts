@@ -101,6 +101,7 @@ const medications = [
 ];
 
 async function main() {
+  await prisma.usageLog.deleteMany();
   await prisma.medication.deleteMany();
 
   for (const medication of medications) {

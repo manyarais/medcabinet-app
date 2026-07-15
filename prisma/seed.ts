@@ -3,6 +3,7 @@
 // Includes at least one PRESCRIPTION so the OTC/Rx badge can show both states.
 
 import { PrismaClient } from "@prisma/client";
+import { sizeForCompartment } from "../src/lib/compartments";
 
 const prisma = new PrismaClient();
 
@@ -100,11 +101,15 @@ const medications = [
 ];
 
 async function main() {
-  // Clear existing rows so re-seeding is idempotent for local demos.
   await prisma.medication.deleteMany();
 
   for (const medication of medications) {
-    await prisma.medication.create({ data: medication });
+    await prisma.medication.create({
+      data: {
+        ...medication,
+        compartmentSize: sizeForCompartment(medication.compartment),
+      },
+    });
   }
 
   console.log(`Seeded ${medications.length} medications into the cabinet.`);

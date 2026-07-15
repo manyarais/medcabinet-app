@@ -1,7 +1,9 @@
-// Medication detail page (Phase 1).
+// Medication detail page (Phase 1 + Phase 2 cabinet actions).
 // URL slug is the brand name; we re-run the lookup and show label fields.
-// If that brand is already in the local cabinet DB, show the compartment badge.
+// If already in the cabinet: Edit / Remove. Otherwise: Add to cabinet.
 
+import { AddToCabinetForm } from "@/components/AddToCabinetForm";
+import { CabinetMedicationActions } from "@/components/CabinetMedicationActions";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { prisma } from "@/lib/db";
 import { lookupDrugs } from "@/lib/drugs";
@@ -36,8 +38,6 @@ export default async function DrugDetailPage({ params }: PageProps) {
     lookupError = error instanceof Error ? error.message : "Lookup failed";
   }
 
-  // Prototype cabinet is tiny, so a small in-memory match is fine and
-  // gives us reliable case-insensitive / partial brand matching vs openFDA casing.
   const cabinetMedications = await prisma.medication.findMany();
   const cabinetMatch =
     cabinetMedications.find((med) => namesMatch(brandFromSlug, med.brandName)) ??
@@ -46,13 +46,41 @@ export default async function DrugDetailPage({ params }: PageProps) {
     ) ??
     null;
 
+  const occupied = cabinetMedications
+    .filter((med) => med.compartment != null)
+    .map((med) => ({
+      id: med.id,
+      compartment: med.compartment as number,
+      brandName: med.brandName,
+    }));
+
+  const displayDrug: DrugResult | null =
+    drug ??
+    (cabinetMatch
+      ? {
+          brandName: cabinetMatch.brandName,
+          genericName: cabinetMatch.genericName,
+          productType:
+            cabinetMatch.productType === "OTC" ||
+            cabinetMatch.productType === "PRESCRIPTION"
+              ? cabinetMatch.productType
+              : "UNKNOWN",
+          purpose: cabinetMatch.purpose,
+          indications: cabinetMatch.indications,
+          warnings: cabinetMatch.warnings,
+          dosage: cabinetMatch.dosage,
+          normalizedName: null,
+          rxcui: null,
+        }
+      : null);
+
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-8">
       <Link href="/" className="mb-6 text-sm font-medium text-teal-800 hover:underline">
         ← Back to search
       </Link>
 
-      {lookupError && (
+      {lookupError && !cabinetMatch && (
         <p
           className="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800"
           role="alert"
@@ -61,55 +89,42 @@ export default async function DrugDetailPage({ params }: PageProps) {
         </p>
       )}
 
-      {!lookupError && !drug && !cabinetMatch && (
+      {!displayDrug && (
         <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
           No openFDA label found for “{brandFromSlug}”.
         </p>
       )}
 
-      {drug && (
+      {displayDrug && (
         <article className="flex flex-col gap-6">
           <header className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <ProductTypeBadge productType={drug.productType} />
+              <ProductTypeBadge productType={displayDrug.productType} />
               {cabinetMatch && <CabinetBadge compartment={cabinetMatch.compartment} />}
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
-              {drug.brandName}
+              {displayDrug.brandName}
             </h1>
             <p className="text-base text-zinc-600">
-              {drug.genericName ?? "Generic name unavailable"}
+              {displayDrug.genericName ?? "Generic name unavailable"}
             </p>
+            {!drug && cabinetMatch && (
+              <p className="text-xs text-zinc-500">
+                Showing saved cabinet data (live label lookup had no match).
+              </p>
+            )}
           </header>
 
-          <DetailSection title="Purpose" body={drug.purpose} />
-          <DetailSection title="Indications & usage" body={drug.indications} />
-          <DetailSection title="Dosage & administration" body={drug.dosage} />
-          <DetailSection title="Warnings" body={drug.warnings} />
-        </article>
-      )}
+          {cabinetMatch ? (
+            <CabinetMedicationActions medication={cabinetMatch} occupied={occupied} />
+          ) : (
+            <AddToCabinetForm drug={displayDrug} occupied={occupied} />
+          )}
 
-      {!drug && cabinetMatch && (
-        <article className="mt-4 flex flex-col gap-6">
-          <header className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <ProductTypeBadge productType={cabinetMatch.productType} />
-              <CabinetBadge compartment={cabinetMatch.compartment} />
-            </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
-              {cabinetMatch.brandName}
-            </h1>
-            <p className="text-base text-zinc-600">
-              {cabinetMatch.genericName ?? "Generic name unavailable"}
-            </p>
-            <p className="text-xs text-zinc-500">
-              Showing saved cabinet data (live label lookup had no match).
-            </p>
-          </header>
-          <DetailSection title="Purpose" body={cabinetMatch.purpose} />
-          <DetailSection title="Indications & usage" body={cabinetMatch.indications} />
-          <DetailSection title="Dosage & administration" body={cabinetMatch.dosage} />
-          <DetailSection title="Warnings" body={cabinetMatch.warnings} />
+          <DetailSection title="Purpose" body={displayDrug.purpose} />
+          <DetailSection title="Indications & usage" body={displayDrug.indications} />
+          <DetailSection title="Dosage & administration" body={displayDrug.dosage} />
+          <DetailSection title="Warnings" body={displayDrug.warnings} />
         </article>
       )}
     </main>
@@ -136,7 +151,6 @@ function DetailSection({ title, body }: { title: string; body: string | null }) 
   );
 }
 
-/** Case-insensitive equality, or either string containing the other (openFDA vs seed names). */
 function namesMatch(a: string, b: string): boolean {
   const left = a.trim().toLowerCase();
   const right = b.trim().toLowerCase();

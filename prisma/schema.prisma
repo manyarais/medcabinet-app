@@ -1,5 +1,5 @@
 // Prisma schema for MedCabinet.
-// Only Medication lives here for now — UsageLog and Prescription are added in later phases.
+// UsageLog is added in Phase 3. Prescription stays Phase 5.
 
 generator client {
   provider = "prisma-client-js"
@@ -11,17 +11,18 @@ datasource db {
 }
 
 model Medication {
-  id             Int      @id @default(autoincrement())
-  brandName      String
-  genericName    String?
-  productType    String // "OTC" | "PRESCRIPTION"
-  indications    String
-  purpose        String?
-  warnings       String?
-  dosage         String?
-  expirationDate String?
-  compartment    Int? // 1–12, or null while pending assignment
-  status         String   @default("active") // "active" | "pending_review"
-  addedAt        DateTime @default(now())
-  rawLabelText   String? // OCR dump from hardware scans (Phase 4)
+  id              Int      @id @default(autoincrement())
+  brandName       String
+  genericName     String?
+  productType     String // "OTC" | "PRESCRIPTION"
+  indications     String
+  purpose         String?
+  warnings        String?
+  dosage          String?
+  expirationDate  String?
+  compartment     Int? // 1–TOTAL_COMPARTMENTS; null while pending; never scanner bay when active
+  compartmentSize String? // "medium" | "thin" | "big" — auto-filled from compartment number
+  status          String   @default("active") // "active" | "pending_review"
+  addedAt         DateTime @default(now())
+  rawLabelText    String? // OCR dump from hardware scans (Phase 4)
 }

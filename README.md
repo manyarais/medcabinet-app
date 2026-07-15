@@ -52,7 +52,7 @@ curl -X POST http://localhost:3000/api/scan \
 | Prisma schema + seed | `prisma/` |
 | RxNorm / openFDA helpers | `src/lib/rxnorm.ts`, `src/lib/openfda.ts`, `src/lib/drugs.ts` |
 | **Phase 1** — search API, home search, detail page | `src/app/api/drugs/search/`, `src/app/page.tsx`, `src/app/drugs/[slug]/` |
-| Phase 2 — cabinet grid / add / edit | _(not built yet)_ |
+| **Phase 2** — cabinet grid, add / edit / remove | `src/app/cabinet/`, `src/app/api/cabinet/`, `src/lib/compartments.ts`, `src/components/AddToCabinetForm.tsx`, `src/components/CabinetMedicationActions.tsx` |
 | Phase 3 — symptom lookup | _(not built yet)_ |
 | Phase 4 — `POST /api/scan` + review | _(not built yet)_ |
 | Phase 5 — prescription reminders | _(stretch — not built yet)_ |
@@ -61,3 +61,9 @@ curl -X POST http://localhost:3000/api/scan \
 
 - Home search: [http://localhost:3000](http://localhost:3000) — try `Tylenol`, `Advil`, and misspelling `Tylenl` (should normalize via RxNorm).
 - Seeded cabinet detail (badge): [http://localhost:3000/drugs/Tylenol](http://localhost:3000/drugs/Tylenol) and [http://localhost:3000/drugs/Amoxicillin](http://localhost:3000/drugs/Amoxicillin) (Rx badge).
+
+## Phase 2 quick test
+
+- Cabinet grid: [http://localhost:3000/cabinet](http://localhost:3000/cabinet) — compartments 1–8 plus a distinct Scanner cell (#9).
+- Add: search a med not in the seed → detail → Add to cabinet (empty slot). Trying an occupied slot shows a clear error.
+- Edit / Remove: open a seeded med from the cabinet grid → Edit fields or Remove from cabinet.

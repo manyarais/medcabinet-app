@@ -82,7 +82,7 @@ export function AddToCabinetForm({ drug, occupied }: Props) {
 
   if (success) {
     return (
-      <p className="rounded border border-teal-200 bg-teal-50 px-3 py-3 text-sm text-teal-900">
+      <p className="rounded border border-[var(--brand-sage)] bg-[var(--brand-sage)]/50 px-3 py-3 text-sm text-zinc-900">
         Added to cabinet — compartment {compartment}.
       </p>
     );
@@ -138,7 +138,7 @@ export function AddToCabinetForm({ drug, occupied }: Props) {
       <button
         type="submit"
         disabled={isSaving || Boolean(occupantName)}
-        className="rounded bg-teal-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        className="rounded bg-zinc-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
       >
         {isSaving ? "Saving…" : "Save to cabinet"}
       </button>

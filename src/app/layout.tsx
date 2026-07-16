@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MedCabinet",
-  description: "Smart medicine cabinet companion — search medications and manage your cabinet.",
+  title: "Pillio",
+  description: "Pillio — smart medicine cabinet companion. Search medications and manage your cabinet.",
 };
 
 export default function RootLayout({

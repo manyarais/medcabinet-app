@@ -66,14 +66,14 @@ export function DrugSearch() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="e.g. Tylenol, Advil, Tylenl"
-            className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-base text-zinc-900 outline-none ring-teal-600 focus:ring-2"
+            className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-base text-zinc-900 outline-none ring-[var(--brand-sage-deep)] focus:ring-2"
             autoComplete="off"
             enterKeyHint="search"
           />
           <button
             type="submit"
             disabled={isLoading || !query.trim()}
-            className="shrink-0 rounded-lg bg-teal-700 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-teal-700/50"
+            className="shrink-0 rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-900/50"
           >
             {isLoading ? "Searching…" : "Search"}
           </button>
@@ -113,7 +113,7 @@ export function DrugSearch() {
               <li key={`${drug.brandName}-${drug.genericName}-${index}`}>
                 <Link
                   href={`/drugs/${slug}`}
-                  className="flex items-start justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 transition-colors hover:border-teal-300 hover:bg-teal-50/40"
+                  className="flex items-start justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 transition-colors hover:border-[var(--brand-sage-deep)] hover:bg-[var(--brand-sage)]/40"
                 >
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-zinc-900">{drug.brandName}</p>

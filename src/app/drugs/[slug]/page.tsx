@@ -76,7 +76,7 @@ export default async function DrugDetailPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-8">
-      <Link href="/" className="mb-6 text-sm font-medium text-teal-800 hover:underline">
+      <Link href="/" className="mb-6 text-sm font-medium text-[var(--brand-sage-deep)] hover:underline">
         ← Back to search
       </Link>
 
@@ -133,7 +133,7 @@ export default async function DrugDetailPage({ params }: PageProps) {
 
 function CabinetBadge({ compartment }: { compartment: number | null }) {
   return (
-    <span className="inline-flex items-center rounded bg-teal-700 px-2.5 py-1 text-xs font-semibold text-white">
+    <span className="inline-flex items-center rounded bg-zinc-900 px-2.5 py-1 text-xs font-semibold text-white">
       In cabinet
       {compartment != null ? ` — Compartment ${compartment}` : " — pending assignment"}
     </span>

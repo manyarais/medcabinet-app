@@ -129,7 +129,7 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
         </button>
       </div>
 
-      {message && <p className="text-sm text-teal-800">{message}</p>}
+      {message && <p className="text-sm text-[var(--brand-sage-deep)]">{message}</p>}
       {error && (
         <p className="text-sm text-red-700" role="alert">
           {error}
@@ -203,7 +203,7 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
           <button
             type="submit"
             disabled={isSaving || Boolean(occupantElsewhere)}
-            className="rounded bg-teal-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="rounded bg-zinc-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             {isSaving ? "Saving…" : "Save changes"}
           </button>

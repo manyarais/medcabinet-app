@@ -1,4 +1,4 @@
-# MedCabinet
+# Pillio
 
 Companion web app for a smart medicine cabinet: search live FDA drug labels (via RxNorm normalization + openFDA), track which physical compartment each medication lives in, and (in later phases) look up OTC options by symptom and accept scans from the Raspberry Pi hardware.
 

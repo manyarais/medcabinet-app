@@ -120,7 +120,7 @@ function CompartmentCell({
   return (
     <Link
       href={`/drugs/${slug}`}
-      className="flex min-h-28 flex-col justify-between rounded border border-zinc-300 bg-white px-2 py-3 transition-colors hover:border-teal-400"
+      className="flex min-h-28 flex-col justify-between rounded border border-zinc-300 bg-white px-2 py-3 transition-colors hover:border-[var(--brand-sage-deep)]"
     >
       <div className="flex items-start justify-between gap-1">
         <p className="text-xs font-semibold text-zinc-500">#{config.number}</p>

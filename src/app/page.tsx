@@ -6,7 +6,7 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-8">
       <header className="mb-8">
-        <p className="text-sm font-medium tracking-wide text-teal-800">MedCabinet</p>
+        <p className="text-sm font-medium tracking-wide text-[var(--brand-sage-deep)]">Pillio</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
           Find a medication
         </h1>

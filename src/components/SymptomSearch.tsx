@@ -110,7 +110,7 @@ export function SymptomSearch() {
           <button
             type="submit"
             disabled={isLoading || !query.trim()}
-            className="rounded bg-teal-700 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+            className="rounded bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             {isLoading ? "Searching…" : "Search"}
           </button>
@@ -123,7 +123,7 @@ export function SymptomSearch() {
         </p>
       )}
 
-      {takeMessage && <p className="text-sm text-teal-800">{takeMessage}</p>}
+      {takeMessage && <p className="text-sm text-[var(--brand-sage-deep)]">{takeMessage}</p>}
 
       {result && (
         <>
@@ -148,7 +148,7 @@ export function SymptomSearch() {
                         <p className="text-lg font-semibold text-zinc-900">{match.brandName}</p>
                         <ProductTypeBadge productType={match.productType} />
                       </div>
-                      <p className="text-3xl font-bold tabular-nums text-teal-800">
+                      <p className="text-3xl font-bold tabular-nums text-[var(--brand-sage-deep)]">
                         {match.compartment != null ? `#${match.compartment}` : "—"}
                       </p>
                     </div>
@@ -184,7 +184,7 @@ export function SymptomSearch() {
                         {new Date(entry.takenAt).toLocaleString()}
                       </p>
                     </div>
-                    <p className="text-2xl font-bold tabular-nums text-teal-800">
+                    <p className="text-2xl font-bold tabular-nums text-[var(--brand-sage-deep)]">
                       {entry.compartment != null ? `#${entry.compartment}` : "—"}
                     </p>
                   </li>

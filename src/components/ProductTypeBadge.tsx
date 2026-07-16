@@ -8,7 +8,7 @@ export function ProductTypeBadge({ productType }: { productType: ProductType | s
 
   const label = isOtc ? "OTC" : isRx ? "Rx" : productType;
   const className = isOtc
-    ? "bg-teal-100 text-teal-900"
+    ? "bg-[var(--brand-sage)] text-zinc-900"
     : isRx
       ? "bg-amber-100 text-amber-900"
       : "bg-zinc-100 text-zinc-700";

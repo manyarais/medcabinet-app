@@ -40,12 +40,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const usageLog = await prisma.usageLog.create({
-    data: {
-      medicationId,
-      symptom,
-    },
-  });
+  const [usageLog] = await prisma.$transaction([
+    prisma.usageLog.create({
+      data: {
+        medicationId,
+        symptom,
+      },
+    }),
+    prisma.medication.update({
+      where: { id: medicationId },
+      data: { outOfCabinet: true },
+    }),
+  ]);
 
   return NextResponse.json({ usageLog }, { status: 201 });
 }

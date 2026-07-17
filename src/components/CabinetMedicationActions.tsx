@@ -13,6 +13,7 @@ type MedicationFields = {
   dosage: string | null;
   expirationDate: string | null;
   compartment: number | null;
+  outOfCabinet: boolean;
 };
 
 type Occupant = { compartment: number; brandName: string; id: number };
@@ -32,6 +33,7 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
   const [dosage, setDosage] = useState(medication.dosage ?? "");
   const [compartment, setCompartment] = useState(medication.compartment ?? slots[0] ?? 1);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTogglingOut, setIsTogglingOut] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
 
   async function handleRemove() {
     const confirmed = window.confirm(
-      `Remove ${medication.brandName} from the cabinet?`,
+      `Remove ${medication.brandName} permanently?\n\nUse this when the medication is expired or you are getting rid of it. This frees the compartment.\n\nUse Take out instead if you are only taking the bottle out for a moment and will put it back later.`,
     );
     if (!confirmed) return;
 
@@ -93,7 +95,7 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
-        setError(data.error ?? "Could not remove medication.");
+        setError(data.error ?? "Could not remove medication permanently.");
         return;
       }
       router.push("/cabinet");
@@ -105,9 +107,57 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
     }
   }
 
+  async function handleToggleOut() {
+    setIsTogglingOut(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/cabinet/${medication.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outOfCabinet: !medication.outOfCabinet }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(data.error ?? "Could not update cabinet status.");
+        return;
+      }
+      setMessage(
+        medication.outOfCabinet
+          ? "Marked as back in the cabinet."
+          : "Marked as out of the cabinet.",
+      );
+      router.refresh();
+    } catch {
+      setError("Network error while updating cabinet status.");
+    } finally {
+      setIsTogglingOut(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3 rounded border border-zinc-200 bg-white p-4">
+      <p className="text-xs text-zinc-500">
+        <span className="font-medium text-zinc-700">Take out</span> = bottle is away for now
+        (compartment stays reserved).{" "}
+        <span className="font-medium text-zinc-700">Remove permanently</span> = throw away /
+        expired — frees the compartment.
+      </p>
+
       <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={handleToggleOut}
+          disabled={isTogglingOut}
+          className="rounded bg-zinc-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {isTogglingOut
+            ? "Saving..."
+            : medication.outOfCabinet
+              ? "Put back"
+              : "Take out"}
+        </button>
         <button
           type="button"
           onClick={() => {
@@ -125,9 +175,16 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
           disabled={isRemoving}
           className="rounded border border-red-300 px-3 py-2 text-sm font-medium text-red-800 disabled:opacity-50"
         >
-          {isRemoving ? "Removing…" : "Remove from cabinet"}
+          {isRemoving ? "Removing..." : "Remove permanently"}
         </button>
       </div>
+
+      {medication.outOfCabinet && (
+        <p className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          This medication is out of the cabinet. Compartment{" "}
+          {medication.compartment ?? "unassigned"} remains reserved.
+        </p>
+      )}
 
       {message && <p className="text-sm text-[var(--brand-sage-deep)]">{message}</p>}
       {error && (

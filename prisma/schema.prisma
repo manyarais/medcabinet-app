@@ -1,5 +1,4 @@
 // Prisma schema for MedCabinet.
-// Prescription stays Phase 5.
 
 generator client {
   provider = "prisma-client-js"
@@ -22,16 +21,28 @@ model Medication {
   expirationDate  String?
   compartment     Int? // 1–18; null while pending; never the scanner bay (18) when active
   compartmentSize String? // "medium" | "thin" | "big" — auto-filled from compartment config
+  outOfCabinet    Boolean    @default(false)
   status          String     @default("active") // "active" | "pending_review"
   addedAt         DateTime   @default(now())
   rawLabelText    String? // OCR dump from hardware scans (Phase 4)
   usageLogs       UsageLog[]
+  prescriptions   Prescription[]
 }
 
 model UsageLog {
   id           Int        @id @default(autoincrement())
+  medicationId Int?
+  medication   Medication? @relation(fields: [medicationId], references: [id], onDelete: SetNull)
+  symptom      String? // what the user searched when they took it; null for scheduled Rx doses
+  takenAt      DateTime   @default(now())
+}
+
+model Prescription {
+  id           Int        @id @default(autoincrement())
   medicationId Int
   medication   Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
-  symptom      String? // what the user searched when they took it
-  takenAt      DateTime   @default(now())
+  dosesPerDay  Int
+  pillsPerDose Int
+  startDate    String // YYYY-MM-DD (required — prescriptions are finite)
+  endDate      String // YYYY-MM-DD (required — prescriptions are finite)
 }

@@ -12,7 +12,7 @@ export default function App() {
         <WebView
           source={{ uri: PILLIO_URL }}
           style={{ flex: 1 }}
-          originWhitelist={['*']}
+          originWhitelist={[PILLIO_URL]}
           javaScriptEnabled
           domStorageEnabled
         />

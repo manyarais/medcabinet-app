@@ -10,12 +10,13 @@ type Match = {
   brandName: string;
   productType: string;
   compartment: number | null;
+  outOfCabinet: boolean;
   matchExcerpt: string;
 };
 
 type UsedBefore = {
   id: number;
-  medicationId: number;
+  medicationId: number | null;
   brandName: string;
   compartment: number | null;
   productType: string;
@@ -38,10 +39,12 @@ export function SymptomSearch() {
   const [takeMessage, setTakeMessage] = useState<string | null>(null);
   const [takingId, setTakingId] = useState<number | null>(null);
 
-  async function runSearch(symptom: string) {
+  async function runSearch(symptom: string, options?: { preserveTakeMessage?: boolean }) {
     setIsLoading(true);
     setError(null);
-    setTakeMessage(null);
+    if (!options?.preserveTakeMessage) {
+      setTakeMessage(null);
+    }
     setResult(null);
 
     try {
@@ -84,8 +87,8 @@ export function SymptomSearch() {
         setTakeMessage(data.error ?? "Could not log this dose.");
         return;
       }
-      setTakeMessage(`Logged taking ${match.brandName}.`);
-      await runSearch(result.symptom);
+      await runSearch(result.symptom, { preserveTakeMessage: true });
+      setTakeMessage(`Logged taking ${match.brandName}; marked it out of the cabinet.`);
     } catch {
       setTakeMessage("Network error while logging.");
     } finally {
@@ -145,7 +148,14 @@ export function SymptomSearch() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-lg font-semibold text-zinc-900">{match.brandName}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-lg font-semibold text-zinc-900">{match.brandName}</p>
+                          {match.outOfCabinet && (
+                            <span className="rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                              OUT
+                            </span>
+                          )}
+                        </div>
                         <ProductTypeBadge productType={match.productType} />
                       </div>
                       <p className="text-3xl font-bold tabular-nums text-[var(--brand-sage-deep)]">

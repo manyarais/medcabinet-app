@@ -3,6 +3,7 @@
 // If already in the cabinet: Edit / Remove. Otherwise: Add to cabinet.
 
 import { AddToCabinetForm } from "@/components/AddToCabinetForm";
+import { AddPrescriptionForm } from "@/components/AddPrescriptionForm";
 import { CabinetMedicationActions } from "@/components/CabinetMedicationActions";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { prisma } from "@/lib/db";
@@ -38,7 +39,9 @@ export default async function DrugDetailPage({ params }: PageProps) {
     lookupError = error instanceof Error ? error.message : "Lookup failed";
   }
 
-  const cabinetMedications = await prisma.medication.findMany();
+  const cabinetMedications = await prisma.medication.findMany({
+    include: { prescriptions: { orderBy: { startDate: "asc" } } },
+  });
   const cabinetMatch =
     cabinetMedications.find((med) => namesMatch(brandFromSlug, med.brandName)) ??
     cabinetMedications.find(
@@ -100,7 +103,12 @@ export default async function DrugDetailPage({ params }: PageProps) {
           <header className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <ProductTypeBadge productType={displayDrug.productType} />
-              {cabinetMatch && <CabinetBadge compartment={cabinetMatch.compartment} />}
+              {cabinetMatch && (
+                <CabinetBadge
+                  compartment={cabinetMatch.compartment}
+                  outOfCabinet={cabinetMatch.outOfCabinet}
+                />
+              )}
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
               {displayDrug.brandName}
@@ -116,7 +124,22 @@ export default async function DrugDetailPage({ params }: PageProps) {
           </header>
 
           {cabinetMatch ? (
-            <CabinetMedicationActions medication={cabinetMatch} occupied={occupied} />
+            <>
+              <CabinetMedicationActions medication={cabinetMatch} occupied={occupied} />
+              {cabinetMatch.productType === "PRESCRIPTION" && (
+                <AddPrescriptionForm
+                  medicationId={cabinetMatch.id}
+                  brandName={cabinetMatch.brandName}
+                  schedules={cabinetMatch.prescriptions.map((rx) => ({
+                    id: rx.id,
+                    dosesPerDay: rx.dosesPerDay,
+                    pillsPerDose: rx.pillsPerDose,
+                    startDate: rx.startDate,
+                    endDate: rx.endDate,
+                  }))}
+                />
+              )}
+            </>
           ) : (
             <AddToCabinetForm drug={displayDrug} occupied={occupied} />
           )}
@@ -131,10 +154,16 @@ export default async function DrugDetailPage({ params }: PageProps) {
   );
 }
 
-function CabinetBadge({ compartment }: { compartment: number | null }) {
+function CabinetBadge({
+  compartment,
+  outOfCabinet,
+}: {
+  compartment: number | null;
+  outOfCabinet: boolean;
+}) {
   return (
-    <span className="inline-flex items-center rounded bg-zinc-900 px-2.5 py-1 text-xs font-semibold text-white">
-      In cabinet
+    <span className={`inline-flex items-center rounded px-2.5 py-1 text-xs font-semibold text-white ${outOfCabinet ? "bg-amber-600" : "bg-zinc-900"}`}>
+      {outOfCabinet ? "Out of cabinet" : "In cabinet"}
       {compartment != null ? ` — Compartment ${compartment}` : " — pending assignment"}
     </span>
   );

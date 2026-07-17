@@ -11,8 +11,8 @@ export default function HomePage() {
           Find a medication
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-          Search by brand or generic name. Misspellings are normalized through RxNorm
-          before we look up the FDA label.
+          See what you already have, then browse products you can add. Scanning the bottle
+          at the cabinet is the fastest way to add something new.
         </p>
       </header>
 

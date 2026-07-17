@@ -4,6 +4,7 @@
 import { PrismaClient } from "@prisma/client";
 import { sizeForCompartment } from "../src/lib/compartments";
 import { addDaysLocal, formatDateLocal } from "../src/lib/dates";
+import { serializeDoseTimes } from "../src/lib/doseTimes";
 
 const prisma = new PrismaClient();
 
@@ -207,6 +208,7 @@ async function main() {
         medicationId: amoxicillin.id,
         dosesPerDay: 3,
         pillsPerDose: 1,
+        doseTimes: serializeDoseTimes(["08:00", "14:00", "20:00"]),
         startDate: addDaysLocal(today, -1),
         endDate: addDaysLocal(today, 9),
       },
@@ -219,6 +221,7 @@ async function main() {
         medicationId: lisinopril.id,
         dosesPerDay: 1,
         pillsPerDose: 1,
+        doseTimes: serializeDoseTimes(["09:00"]),
         startDate: addDaysLocal(today, -14),
         endDate: addDaysLocal(today, 16),
       },

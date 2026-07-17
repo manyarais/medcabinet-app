@@ -1,5 +1,5 @@
 // Shared helpers for cabinet assign/update validation.
-// Rejects scanner bay and occupied compartments (no silent overwrites).
+// Rejects invalid / occupied compartments (no silent overwrites).
 
 import {
   isScannerCompartment,
@@ -46,7 +46,7 @@ export function validateAssignableCompartment(
     return {
       ok: false,
       status: 400,
-      error: `Compartment ${compartment} is the scanner bay and cannot hold a medication.`,
+      error: `Compartment ${compartment} is reserved and cannot hold a medication.`,
     };
   }
 
@@ -54,7 +54,7 @@ export function validateAssignableCompartment(
     return {
       ok: false,
       status: 400,
-      error: `Compartment must be an assignable slot (not the scanner bay).`,
+      error: `Compartment must be a valid slot from 1–18.`,
     };
   }
 

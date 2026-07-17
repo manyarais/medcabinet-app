@@ -1,4 +1,5 @@
 import { AppNav } from "@/components/AppNav";
+import { DueDosesBanner } from "@/components/DueDosesBanner";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -30,6 +31,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-stone-50 text-zinc-900">
         <AppNav />
+        <DueDosesBanner />
         {children}
       </body>
     </html>

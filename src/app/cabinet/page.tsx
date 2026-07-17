@@ -3,8 +3,8 @@
 
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { CabinetOutToggleButton } from "@/components/CabinetOutToggleButton";
+import { CabinetJumpSearch } from "@/components/CabinetJumpSearch";
 import {
-  SCANNER_COMPARTMENT,
   compartmentsForModule,
   type CompartmentConfig,
 } from "@/lib/compartments";
@@ -39,9 +39,17 @@ export default async function CabinetPage() {
 
   const outCount = medications.filter((med) => med.outOfCabinet).length;
 
+  const jumpMeds = medications.map((med) => ({
+    id: med.id,
+    brandName: med.brandName,
+    genericName: med.genericName,
+    compartment: med.compartment,
+    outOfCabinet: med.outOfCabinet,
+  }));
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-8">
-      <header className="mb-6">
+      <header className="mb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold text-zinc-900">Cabinet</h1>
           <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
@@ -49,10 +57,11 @@ export default async function CabinetPage() {
           </span>
         </div>
         <p className="mt-1 text-sm text-zinc-600">
-          Two modules (1–9 and 10–18). Compartment {SCANNER_COMPARTMENT} is the scanner bay
-          and cannot hold a medication.
+          Two modules (1–9 and 10–18). Big bays: 15 and 18.
         </p>
       </header>
+
+      <CabinetJumpSearch medications={jumpMeds} />
 
       <div className="flex flex-col gap-8 sm:flex-row sm:items-start">
         <ModuleGrid

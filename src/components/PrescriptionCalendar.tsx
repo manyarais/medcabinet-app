@@ -1,16 +1,20 @@
 "use client";
 
-// Day calendar for prescription dose reminders (Phase 5).
-// Checked state comes from UsageLog count; past days are read-only.
+// Month calendar for prescription dose reminders (Phase 5).
+// Google Calendar–style month grid + selected-day agenda with checkboxes.
 
 import {
-  addDaysLocal,
+  buildMonthGrid,
   formatDisplayDate,
+  formatMonthTitle,
+  parseYearMonth,
+  shiftMonth,
   todayLocal,
 } from "@/lib/dates";
+import { formatDoseTimeDisplay } from "@/lib/doseTimes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Dose = {
   prescriptionId: number;
@@ -18,8 +22,10 @@ type Dose = {
   brandName: string;
   compartment: number | null;
   doseIndex: number;
+  absoluteIndex: number;
   dosesPerDay: number;
   pillsPerDose: number;
+  scheduledTime: string;
   taken: boolean;
 };
 
@@ -32,52 +38,170 @@ type CalendarResponse = {
   error?: string;
 };
 
+type MonthDaySummary = {
+  date: string;
+  totalDoses: number;
+  takenDoses: number;
+  events: Array<{
+    medicationId: number;
+    brandName: string;
+    doses: number;
+    taken: number;
+  }>;
+};
+
+type MonthResponse = {
+  month: string;
+  days: Record<string, MonthDaySummary>;
+  error?: string;
+};
+
 type Props = {
   initialDate: string;
 };
 
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const EVENT_COLORS = [
+  { chip: "bg-[#1a73e8] text-white", dot: "bg-[#1a73e8]" },
+  { chip: "bg-[#0b8043] text-white", dot: "bg-[#0b8043]" },
+  { chip: "bg-[#8e24aa] text-white", dot: "bg-[#8e24aa]" },
+  { chip: "bg-[#e67c73] text-white", dot: "bg-[#e67c73]" },
+  { chip: "bg-[#f6bf26] text-zinc-900", dot: "bg-[#f6bf26]" },
+  { chip: "bg-[#039be5] text-white", dot: "bg-[#039be5]" },
+];
+
+function colorsForMed(medicationId: number) {
+  return EVENT_COLORS[medicationId % EVENT_COLORS.length] ?? EVENT_COLORS[0];
+}
+
 export function PrescriptionCalendar({ initialDate }: Props) {
   const router = useRouter();
-  const [date, setDate] = useState(initialDate);
-  const [data, setData] = useState<CalendarResponse | null>(null);
+  const today = todayLocal();
+  const initialYm = parseYearMonth(initialDate);
+
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [year, setYear] = useState(initialYm.year);
+  const [monthIndex, setMonthIndex] = useState(initialYm.monthIndex);
+
+  const [monthData, setMonthData] = useState<MonthResponse | null>(null);
+  const [dayData, setDayData] = useState<CalendarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [monthLoading, setMonthLoading] = useState(true);
+  const [dayLoading, setDayLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  const monthKey = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+  const grid = useMemo(() => buildMonthGrid(year, monthIndex), [year, monthIndex]);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
-      setLoading(true);
-      setError(null);
+    async function loadMonth() {
+      setMonthLoading(true);
       try {
-        const response = await fetch(`/api/calendar?date=${encodeURIComponent(date)}`);
-        const json = (await response.json()) as CalendarResponse;
+        const response = await fetch(
+          `/api/calendar/month?month=${encodeURIComponent(monthKey)}`,
+        );
+        const json = (await response.json()) as MonthResponse;
         if (!response.ok) {
-          if (!cancelled) setError(json.error ?? "Could not load calendar.");
+          if (!cancelled) setError(json.error ?? "Could not load month.");
           return;
         }
-        if (!cancelled) setData(json);
+        if (!cancelled) {
+          setMonthData(json);
+          setError(null);
+        }
       } catch {
         if (!cancelled) setError("Could not reach the calendar API.");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setMonthLoading(false);
       }
     }
 
-    void load();
+    void loadMonth();
     return () => {
       cancelled = true;
     };
-  }, [date]);
+  }, [monthKey]);
 
-  function goTo(nextDate: string) {
-    setDate(nextDate);
-    router.replace(`/calendar?date=${encodeURIComponent(nextDate)}`, { scroll: false });
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDay() {
+      setDayLoading(true);
+      try {
+        const response = await fetch(
+          `/api/calendar?date=${encodeURIComponent(selectedDate)}`,
+        );
+        const json = (await response.json()) as CalendarResponse;
+        if (!response.ok) {
+          if (!cancelled) setError(json.error ?? "Could not load day.");
+          return;
+        }
+        if (!cancelled) setDayData(json);
+      } catch {
+        if (!cancelled) setError("Could not reach the calendar API.");
+      } finally {
+        if (!cancelled) setDayLoading(false);
+      }
+    }
+
+    void loadDay();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate]);
+
+  function selectDate(nextDate: string) {
+    setSelectedDate(nextDate);
+    const ym = parseYearMonth(nextDate);
+    setYear(ym.year);
+    setMonthIndex(ym.monthIndex);
+    router.replace(`/calendar?date=${encodeURIComponent(nextDate)}`, {
+      scroll: false,
+    });
+  }
+
+  function goMonth(delta: number) {
+    const next = shiftMonth(year, monthIndex, delta);
+    setYear(next.year);
+    setMonthIndex(next.monthIndex);
+    const firstOfMonth = `${next.year}-${String(next.monthIndex + 1).padStart(2, "0")}-01`;
+    // Keep selection in the visible month when possible
+    const stillInMonth =
+      selectedDate.startsWith(
+        `${next.year}-${String(next.monthIndex + 1).padStart(2, "0")}`,
+      );
+    if (!stillInMonth) {
+      const jump =
+        today.startsWith(
+          `${next.year}-${String(next.monthIndex + 1).padStart(2, "0")}`,
+        )
+          ? today
+          : firstOfMonth;
+      setSelectedDate(jump);
+      router.replace(`/calendar?date=${encodeURIComponent(jump)}`, {
+        scroll: false,
+      });
+    }
+  }
+
+  async function refreshMonthAndDay() {
+    const [monthRes, dayRes] = await Promise.all([
+      fetch(`/api/calendar/month?month=${encodeURIComponent(monthKey)}`),
+      fetch(`/api/calendar?date=${encodeURIComponent(selectedDate)}`),
+    ]);
+    if (monthRes.ok) {
+      setMonthData((await monthRes.json()) as MonthResponse);
+    }
+    if (dayRes.ok) {
+      setDayData((await dayRes.json()) as CalendarResponse);
+    }
   }
 
   async function handleTake(dose: Dose) {
-    if (!data || data.isPast || dose.taken) return;
+    if (!dayData || !dayData.isToday || dose.taken) return;
 
     const key = `${dose.medicationId}-${dose.prescriptionId}-${dose.doseIndex}`;
     setSavingKey(key);
@@ -87,17 +211,17 @@ export function PrescriptionCalendar({ initialDate }: Props) {
       const response = await fetch("/api/calendar/take", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ medicationId: dose.medicationId, date }),
+        body: JSON.stringify({
+          medicationId: dose.medicationId,
+          date: selectedDate,
+        }),
       });
       const json = (await response.json()) as { error?: string };
       if (!response.ok) {
         setError(json.error ?? "Could not log dose.");
         return;
       }
-
-      const refresh = await fetch(`/api/calendar?date=${encodeURIComponent(date)}`);
-      const refreshed = (await refresh.json()) as CalendarResponse;
-      if (refresh.ok) setData(refreshed);
+      await refreshMonthAndDay();
     } catch {
       setError("Network error while logging dose.");
     } finally {
@@ -105,104 +229,250 @@ export function PrescriptionCalendar({ initialDate }: Props) {
     }
   }
 
-  const today = todayLocal();
-  const readOnly = Boolean(data && !data.isToday);
+  async function handleUntake(dose: Dose) {
+    if (!dayData || !dayData.isToday || !dose.taken) return;
+
+    const key = `${dose.medicationId}-${dose.prescriptionId}-${dose.doseIndex}`;
+    setSavingKey(key);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/calendar/untake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          medicationId: dose.medicationId,
+          date: selectedDate,
+        }),
+      });
+      const json = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(json.error ?? "Could not undo dose.");
+        return;
+      }
+      await refreshMonthAndDay();
+    } catch {
+      setError("Network error while undoing dose.");
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  /** Only the latest taken slot for a med can be unchecked (LIFO). */
+  function canUntakeDose(dose: Dose, doses: Dose[]) {
+    if (!dose.taken) return false;
+    const takenMax = doses
+      .filter((d) => d.medicationId === dose.medicationId && d.taken)
+      .reduce((max, d) => Math.max(max, d.absoluteIndex), 0);
+    return dose.absoluteIndex === takenMax;
+  }
+
+  const readOnly = Boolean(dayData && !dayData.isToday);
+  const selectedSummary = monthData?.days[selectedDate];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => goTo(addDaysLocal(date, -1))}
-          className="rounded border border-zinc-300 px-3 py-2 text-sm font-medium"
-        >
-          Previous
-        </button>
-        <div className="text-center">
-          <p className="text-lg font-semibold text-zinc-900">{formatDisplayDate(date)}</p>
-          {date !== today && (
+    <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+      <section className="min-w-0 flex-1 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => goTo(today)}
-              className="mt-1 text-xs font-medium text-[var(--brand-sage-deep)] hover:underline"
+              onClick={() => goMonth(-1)}
+              className="rounded-full px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+              aria-label="Previous month"
             >
-              Jump to today
+              ‹
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => goMonth(1)}
+              className="rounded-full px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+              aria-label="Next month"
+            >
+              ›
+            </button>
+            <h2 className="ml-1 text-xl font-semibold tracking-tight text-zinc-900">
+              {formatMonthTitle(year, monthIndex)}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => selectDate(today)}
+            className="rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+          >
+            Today
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => goTo(addDaysLocal(date, 1))}
-          className="rounded border border-zinc-300 px-3 py-2 text-sm font-medium"
-        >
-          Next
-        </button>
-      </div>
 
-      {readOnly && (
-        <p className="rounded border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
-          {data?.isPast
-            ? "Past day — showing logged doses (read-only)."
-            : "Upcoming day — reminder list only (check off doses on the day they are due)."}
-        </p>
-      )}
+        <div className="grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
+          {WEEKDAYS.map((label) => (
+            <div
+              key={label}
+              className="px-1 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500"
+            >
+              {label}
+            </div>
+          ))}
+        </div>
 
-      {loading && <p className="text-sm text-zinc-500">Loading doses…</p>}
-
-      {error && (
-        <p className="rounded border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800" role="alert">
-          {error}
-        </p>
-      )}
-
-      {!loading && data && data.doses.length === 0 && (
-        <p className="rounded border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
-          No prescription doses scheduled for this day.
-        </p>
-      )}
-
-      {!loading && data && data.doses.length > 0 && (
-        <ul className="flex flex-col gap-3">
-          {data.doses.map((dose) => {
-            const key = `${dose.medicationId}-${dose.prescriptionId}-${dose.doseIndex}`;
-            const canCheck = !readOnly && !dose.taken;
-            return (
-              <li
-                key={key}
-                className="flex items-start gap-3 rounded border border-zinc-200 bg-white px-4 py-4"
-              >
-                <input
-                  type="checkbox"
-                  checked={dose.taken}
-                  disabled={!canCheck || savingKey === key}
-                  onChange={() => {
-                    void handleTake(dose);
-                  }}
-                  className="mt-1 h-5 w-5"
-                  aria-label={`Dose ${dose.doseIndex} of ${dose.brandName}`}
+        <div className="grid grid-cols-7 auto-rows-[minmax(5.5rem,1fr)]">
+          {grid.map((date, index) => {
+            if (!date) {
+              return (
+                <div
+                  key={`pad-${index}`}
+                  className="min-h-[5.5rem] border-b border-r border-zinc-100 bg-zinc-50/60"
                 />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <Link
-                      href={`/drugs/${encodeURIComponent(dose.brandName)}`}
-                      className="font-semibold text-zinc-900 hover:underline"
-                    >
-                      {dose.brandName}
-                    </Link>
-                    <span className="text-sm tabular-nums text-zinc-500">
-                      {dose.compartment != null ? `#${dose.compartment}` : "—"}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-zinc-600">
-                    Dose {dose.doseIndex} of {dose.dosesPerDay} · {dose.pillsPerDose}{" "}
-                    pill{dose.pillsPerDose === 1 ? "" : "s"}
-                  </p>
+              );
+            }
+
+            const summary = monthData?.days[date];
+            const isSelected = date === selectedDate;
+            const isToday = date === today;
+            const events = summary?.events ?? [];
+
+            return (
+              <button
+                key={date}
+                type="button"
+                onClick={() => selectDate(date)}
+                className={`flex min-h-[5.5rem] flex-col gap-1 border-b border-r border-zinc-100 px-1.5 py-1.5 text-left transition-colors hover:bg-[#e8f0fe]/50 ${
+                  isSelected ? "bg-[#e8f0fe]" : "bg-white"
+                }`}
+              >
+                <span
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium ${
+                    isToday
+                      ? "bg-[#1a73e8] text-white"
+                      : isSelected
+                        ? "bg-[#d2e3fc] text-[#174ea6]"
+                        : "text-zinc-800"
+                  }`}
+                >
+                  {Number(date.slice(-2))}
+                </span>
+
+                <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
+                  {monthLoading ? null : (
+                    <>
+                      {events.slice(0, 3).map((event) => (
+                        <span
+                          key={`${date}-${event.medicationId}`}
+                          className={`truncate rounded px-1 py-0.5 text-[10px] font-semibold leading-tight ${colorsForMed(event.medicationId).chip}`}
+                          title={`${event.brandName}: ${event.taken}/${event.doses}`}
+                        >
+                          {event.brandName}
+                          {event.doses > 1 ? ` · ${event.taken}/${event.doses}` : ""}
+                        </span>
+                      ))}
+                      {events.length > 3 && (
+                        <span className="px-1 text-[10px] font-medium text-zinc-500">
+                          +{events.length - 3} more
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
-              </li>
+              </button>
             );
           })}
-        </ul>
-      )}
+        </div>
+      </section>
+
+      <aside className="w-full shrink-0 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm lg:w-80">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          {dayData?.isToday ? "Today" : dayData?.isPast ? "Past day" : "Upcoming"}
+        </p>
+        <h3 className="mt-1 text-lg font-semibold text-zinc-900">
+          {formatDisplayDate(selectedDate)}
+        </h3>
+
+        {readOnly && (
+          <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+            {dayData?.isPast
+              ? "Read-only log for this day."
+              : "Reminder only — check off doses on the day they are due."}
+          </p>
+        )}
+
+        {error && (
+          <p
+            className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            role="alert"
+          >
+            {error}
+          </p>
+        )}
+
+        {dayLoading && <p className="mt-4 text-sm text-zinc-500">Loading…</p>}
+
+        {!dayLoading && dayData && dayData.doses.length === 0 && (
+          <p className="mt-4 rounded-lg bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
+            No prescription doses on this day.
+          </p>
+        )}
+
+        {!dayLoading && dayData && dayData.doses.length > 0 && (
+          <ul className="mt-4 flex flex-col gap-2">
+            {dayData.doses.map((dose) => {
+              const key = `${dose.medicationId}-${dose.prescriptionId}-${dose.doseIndex}`;
+              const canCheck = !readOnly && !dose.taken;
+              const canUntake = !readOnly && canUntakeDose(dose, dayData.doses);
+              const interactive = canCheck || canUntake;
+              return (
+                <li
+                  key={key}
+                  className="flex items-start gap-3 rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-3"
+                >
+                  <span
+                    className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${colorsForMed(dose.medicationId).dot}`}
+                    aria-hidden
+                  />
+                  <input
+                    type="checkbox"
+                    checked={dose.taken}
+                    disabled={!interactive || savingKey === key}
+                    onChange={() => {
+                      if (dose.taken) {
+                        void handleUntake(dose);
+                      } else {
+                        void handleTake(dose);
+                      }
+                    }}
+                    className="mt-0.5 h-4 w-4"
+                    aria-label={`${formatDoseTimeDisplay(dose.scheduledTime)} dose of ${dose.brandName}${canUntake ? " (uncheck to undo)" : ""}`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="text-sm font-semibold tabular-nums text-zinc-800">
+                        {formatDoseTimeDisplay(dose.scheduledTime)}
+                      </span>
+                      <Link
+                        href={`/drugs/${encodeURIComponent(dose.brandName)}`}
+                        className="font-semibold text-zinc-900 hover:underline"
+                      >
+                        {dose.brandName}
+                      </Link>
+                    </div>
+                    <p className="text-xs text-zinc-600">
+                      Dose {dose.doseIndex}/{dose.dosesPerDay} · {dose.pillsPerDose}{" "}
+                      pill{dose.pillsPerDose === 1 ? "" : "s"}
+                      {dose.compartment != null ? ` · #${dose.compartment}` : ""}
+                      {canUntake ? " · tap to undo" : ""}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {selectedSummary && selectedSummary.totalDoses > 0 && (
+          <p className="mt-4 text-xs text-zinc-500">
+            {selectedSummary.takenDoses}/{selectedSummary.totalDoses} doses logged
+          </p>
+        )}
+      </aside>
     </div>
   );
 }

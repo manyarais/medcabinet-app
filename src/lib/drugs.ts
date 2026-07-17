@@ -12,17 +12,21 @@ export type DrugSearchResponse = {
   results: DrugResult[];
 };
 
-export async function lookupDrugs(query: string): Promise<DrugSearchResponse> {
+export async function lookupDrugs(
+  query: string,
+  options?: { limit?: number },
+): Promise<DrugSearchResponse> {
   const trimmed = query.trim();
   if (!trimmed) {
     return { query: trimmed, normalizedName: null, rxcui: null, results: [] };
   }
 
+  const limit = options?.limit ?? 10;
   const rxnorm = await normalizeDrugName(trimmed);
   const searchName = rxnorm?.normalizedName ?? trimmed;
 
   const results = await searchOpenFda(searchName, {
-    limit: 10,
+    limit,
     normalizedName: rxnorm?.normalizedName ?? null,
     rxcui: rxnorm?.rxcui ?? null,
   });
@@ -30,7 +34,7 @@ export async function lookupDrugs(query: string): Promise<DrugSearchResponse> {
   // If normalization found a name but openFDA returned nothing, try the raw query once.
   if (results.length === 0 && rxnorm && rxnorm.normalizedName !== trimmed) {
     const fallbackResults = await searchOpenFda(trimmed, {
-      limit: 10,
+      limit,
       normalizedName: rxnorm.normalizedName,
       rxcui: rxnorm.rxcui,
     });

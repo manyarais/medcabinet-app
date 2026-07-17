@@ -3,6 +3,11 @@
 // Add a finite prescription schedule on an Rx medication detail page (Phase 5).
 
 import { todayLocal } from "@/lib/dates";
+import {
+  defaultDoseTimes,
+  formatDoseTimeDisplay,
+  parseDoseTimes,
+} from "@/lib/doseTimes";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
@@ -10,6 +15,7 @@ type ExistingSchedule = {
   id: number;
   dosesPerDay: number;
   pillsPerDose: number;
+  doseTimes: string;
   startDate: string;
   endDate: string;
 };
@@ -23,13 +29,32 @@ type Props = {
 export function AddPrescriptionForm({ medicationId, brandName, schedules }: Props) {
   const router = useRouter();
   const today = todayLocal();
-  const [dosesPerDay, setDosesPerDay] = useState("2");
+  const [dosesPerDay, setDosesPerDay] = useState(2);
+  const [doseTimes, setDoseTimes] = useState(() => defaultDoseTimes(2));
   const [pillsPerDose, setPillsPerDose] = useState("1");
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  function handleDosesPerDayChange(value: string) {
+    // Ignore empty / non-integer while typing; never keep out-of-range values.
+    if (value.trim() === "") return;
+    const n = Number(value);
+    if (!Number.isInteger(n)) return;
+
+    const clamped = Math.min(12, Math.max(1, n));
+    setDosesPerDay(clamped);
+    setDoseTimes((prev) => {
+      const next = defaultDoseTimes(clamped);
+      return next.map((fallback, i) => prev[i] ?? fallback);
+    });
+  }
+
+  function handleDoseTimeChange(index: number, value: string) {
+    setDoseTimes((prev) => prev.map((t, i) => (i === index ? value : t)));
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -43,8 +68,9 @@ export function AddPrescriptionForm({ medicationId, brandName, schedules }: Prop
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           medicationId,
-          dosesPerDay: Number(dosesPerDay),
+          dosesPerDay,
           pillsPerDose: Number(pillsPerDose),
+          doseTimes,
           startDate,
           endDate,
         }),
@@ -67,17 +93,23 @@ export function AddPrescriptionForm({ medicationId, brandName, schedules }: Prop
     <div className="flex flex-col gap-3 rounded border border-zinc-200 bg-white p-4">
       <h2 className="text-sm font-semibold text-zinc-900">Prescription schedule</h2>
       <p className="text-xs text-zinc-500">
-        Reminder only — this app does not advise on dosing. Start and end dates are required.
+        Reminder only — this app does not advise on dosing. Set times for each dose.
       </p>
 
       {schedules.length > 0 && (
         <ul className="flex flex-col gap-2 text-sm text-zinc-700">
-          {schedules.map((rx) => (
-            <li key={rx.id} className="rounded border border-zinc-100 bg-zinc-50 px-3 py-2">
-              {rx.pillsPerDose} pill{rx.pillsPerDose === 1 ? "" : "s"} × {rx.dosesPerDay}{" "}
-              dose{rx.dosesPerDay === 1 ? "" : "s"}/day · {rx.startDate} → {rx.endDate}
-            </li>
-          ))}
+          {schedules.map((rx) => {
+            const times = parseDoseTimes(rx.doseTimes, rx.dosesPerDay);
+            return (
+              <li key={rx.id} className="rounded border border-zinc-100 bg-zinc-50 px-3 py-2">
+                {rx.pillsPerDose} pill{rx.pillsPerDose === 1 ? "" : "s"} × {rx.dosesPerDay}{" "}
+                dose{rx.dosesPerDay === 1 ? "" : "s"}/day · {rx.startDate} → {rx.endDate}
+                <p className="mt-1 text-xs text-zinc-500">
+                  {times.map(formatDoseTimeDisplay).join(" · ")}
+                </p>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -104,11 +136,29 @@ export function AddPrescriptionForm({ medicationId, brandName, schedules }: Prop
             min={1}
             max={12}
             value={dosesPerDay}
-            onChange={(event) => setDosesPerDay(event.target.value)}
+            onChange={(event) => handleDosesPerDayChange(event.target.value)}
             className="rounded border border-zinc-300 px-2 py-2"
             required
           />
         </label>
+
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-sm font-medium text-zinc-700">Dose times</legend>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {doseTimes.map((time, index) => (
+              <label key={index} className="flex flex-col gap-1 text-sm">
+                <span className="text-xs text-zinc-500">Dose {index + 1}</span>
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(event) => handleDoseTimeChange(index, event.target.value)}
+                  className="rounded border border-zinc-300 px-2 py-2"
+                  required
+                />
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-zinc-700">Start date</span>

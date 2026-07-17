@@ -12,7 +12,8 @@
     "react-native-webview": "13.15.0"
   },
   "scripts": {
-    "start": "expo start",
+    "start": "powershell -ExecutionPolicy Bypass -File ./scripts/start.ps1",
+    "reinstall": "powershell -ExecutionPolicy Bypass -File ./scripts/reinstall-modules.ps1",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"

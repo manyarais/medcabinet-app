@@ -4,6 +4,10 @@ import {
   isValidDateString,
   compareDateStrings,
 } from "@/lib/dates";
+import {
+  normalizeDoseTimesInput,
+  serializeDoseTimes,
+} from "@/lib/doseTimes";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -11,6 +15,7 @@ type Body = {
   medicationId?: number;
   dosesPerDay?: number;
   pillsPerDose?: number;
+  doseTimes?: unknown;
   startDate?: string;
   endDate?: string;
 };
@@ -47,6 +52,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const timesResult = normalizeDoseTimesInput(body.doseTimes, dosesPerDay);
+  if (!timesResult.ok) {
+    return NextResponse.json({ error: timesResult.error }, { status: 400 });
+  }
+
   if (!isValidDateString(startDate) || !isValidDateString(endDate)) {
     return NextResponse.json(
       { error: "startDate and endDate are required (YYYY-MM-DD)." },
@@ -78,6 +88,7 @@ export async function POST(request: NextRequest) {
       medicationId,
       dosesPerDay,
       pillsPerDose,
+      doseTimes: serializeDoseTimes(timesResult.times),
       startDate,
       endDate,
     },

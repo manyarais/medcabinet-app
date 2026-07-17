@@ -1,14 +1,33 @@
 "use client";
 
-// Home-page search UI: calls GET /api/drugs/search and lists results.
-// Kept as a client component so we can show loading/error states while openFDA responds.
+// Home-page search: cabinet matches first (instant), then optional FDA catalog behind "Show more".
 
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
+import {
+  purposeOneLine,
+  refineCatalogResults,
+} from "@/lib/drugSearchResults";
 import type { DrugResult } from "@/lib/types";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
-type SearchApiResponse = {
+type CabinetHit = {
+  id: number;
+  brandName: string;
+  genericName: string | null;
+  productType: string;
+  purpose: string | null;
+  compartment: number | null;
+  outOfCabinet: boolean;
+};
+
+type CabinetSearchResponse = {
+  query: string;
+  results: CabinetHit[];
+  error?: string;
+};
+
+type FdaSearchResponse = {
   query: string;
   normalizedName: string | null;
   rxcui: string | null;
@@ -18,40 +37,99 @@ type SearchApiResponse = {
 
 export function DrugSearch() {
   const [query, setQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [cabinetResults, setCabinetResults] = useState<CabinetHit[] | null>(null);
+  const [catalogResults, setCatalogResults] = useState<DrugResult[] | null>(null);
   const [normalizedName, setNormalizedName] = useState<string | null>(null);
-  const [results, setResults] = useState<DrugResult[] | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [cabinetLoading, setCabinetLoading] = useState(false);
+  const [fdaLoading, setFdaLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCatalog, setShowCatalog] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
 
-    setIsLoading(true);
+    setSubmittedQuery(trimmed);
     setError(null);
-    setResults(null);
+    setCabinetResults(null);
+    setCatalogResults(null);
     setNormalizedName(null);
+    setShowCatalog(false);
+    setCabinetLoading(true);
+    setFdaLoading(true);
 
-    try {
-      const response = await fetch(
-        `/api/drugs/search?q=${encodeURIComponent(trimmed)}`,
+    // Cabinet first — do not wait for FDA.
+    const cabinetPromise = fetch(
+      `/api/cabinet/search?q=${encodeURIComponent(trimmed)}`,
+    )
+      .then(async (response) => {
+        const data = (await response.json()) as CabinetSearchResponse;
+        if (!response.ok) {
+          throw new Error(data.error ?? "Cabinet search failed.");
+        }
+        return data;
+      })
+      .then((data) => {
+        setCabinetResults(data.results);
+        if (data.results.length === 0) {
+          setShowCatalog(true);
+        }
+        return data.results;
+      })
+      .catch(() => {
+        setCabinetResults([]);
+        return [] as CabinetHit[];
+      })
+      .finally(() => {
+        setCabinetLoading(false);
+      });
+
+    const fdaPromise = fetch(
+      `/api/drugs/search?q=${encodeURIComponent(trimmed)}&limit=25`,
+    )
+      .then(async (response) => {
+        const data = (await response.json()) as FdaSearchResponse;
+        if (!response.ok) {
+          throw new Error(data.error ?? "Search failed. Please try again.");
+        }
+        return data;
+      })
+      .catch((err: unknown) => {
+        const message =
+          err instanceof Error ? err.message : "Could not reach the search API.";
+        setError(message);
+        return null;
+      })
+      .finally(() => {
+        setFdaLoading(false);
+      });
+
+    const [owned, fda] = await Promise.all([cabinetPromise, fdaPromise]);
+
+    if (fda) {
+      setNormalizedName(fda.normalizedName);
+      setCatalogResults(
+        refineCatalogResults(
+          fda.results,
+          trimmed,
+          owned.map((med) => ({
+            brandName: med.brandName,
+            genericName: med.genericName,
+          })),
+        ),
       );
-      const data = (await response.json()) as SearchApiResponse;
-
-      if (!response.ok) {
-        setError(data.error ?? "Search failed. Please try again.");
-        return;
-      }
-
-      setNormalizedName(data.normalizedName);
-      setResults(data.results);
-    } catch {
-      setError("Could not reach the search API. Check your connection and try again.");
-    } finally {
-      setIsLoading(false);
+    } else {
+      setCatalogResults([]);
     }
   }
+
+  const hasSearched = submittedQuery.length > 0;
+  const cabinetReady = cabinetResults !== null;
+  const catalogReady = catalogResults !== null;
+  const cabinetCount = cabinetResults?.length ?? 0;
+  const catalogCount = catalogResults?.length ?? 0;
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -72,61 +150,147 @@ export function DrugSearch() {
           />
           <button
             type="submit"
-            disabled={isLoading || !query.trim()}
+            disabled={cabinetLoading || fdaLoading || !query.trim()}
             className="shrink-0 rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-900/50"
           >
-            {isLoading ? "Searching…" : "Search"}
+            {cabinetLoading || fdaLoading ? "Searching…" : "Search"}
           </button>
         </div>
       </form>
 
-      {isLoading && (
-        <p className="text-sm text-zinc-500" role="status">
-          Looking up via RxNorm + openFDA… this can take a few seconds.
-        </p>
-      )}
-
       {error && (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800" role="alert">
+        <p
+          className="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800"
+          role="alert"
+        >
           {error}
         </p>
       )}
 
-      {results && normalizedName && normalizedName.toLowerCase() !== query.trim().toLowerCase() && (
-        <p className="text-sm text-zinc-600">
-          Normalized via RxNorm to{" "}
-          <span className="font-semibold text-zinc-900">{normalizedName}</span>
+      {hasSearched &&
+        normalizedName &&
+        normalizedName.toLowerCase() !== submittedQuery.toLowerCase() && (
+          <p className="text-sm text-zinc-600">
+            Normalized via RxNorm to{" "}
+            <span className="font-semibold text-zinc-900">{normalizedName}</span>
+          </p>
+        )}
+
+      {cabinetLoading && (
+        <p className="text-sm text-zinc-500" role="status">
+          Checking your cabinet…
         </p>
       )}
 
-      {results && results.length === 0 && (
-        <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
-          No label results found for “{query.trim()}”. Try another spelling or brand name.
-        </p>
-      )}
-
-      {results && results.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {results.map((drug, index) => {
-            const slug = encodeURIComponent(drug.brandName);
-            return (
-              <li key={`${drug.brandName}-${drug.genericName}-${index}`}>
+      {cabinetReady && cabinetCount > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+            In your cabinet
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {cabinetResults!.map((med) => (
+              <li key={med.id}>
                 <Link
-                  href={`/drugs/${slug}`}
+                  href={`/drugs/${encodeURIComponent(med.brandName)}`}
                   className="flex items-start justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 transition-colors hover:border-[var(--brand-sage-deep)] hover:bg-[var(--brand-sage)]/40"
                 >
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-zinc-900">{drug.brandName}</p>
+                    <p className="truncate font-semibold text-zinc-900">{med.brandName}</p>
                     <p className="truncate text-sm text-zinc-500">
-                      {drug.genericName ?? "Generic name unavailable"}
+                      {med.genericName ? `(${med.genericName})` : "Generic name unavailable"}
+                    </p>
+                    <p className="mt-1 truncate text-sm text-zinc-600">
+                      {purposeOneLine(med.purpose)}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-zinc-800">
+                      {med.compartment != null
+                        ? `Compartment ${med.compartment}`
+                        : "Compartment unassigned"}
+                      {med.outOfCabinet && (
+                        <span className="ml-2 rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">
+                          Out
+                        </span>
+                      )}
                     </p>
                   </div>
-                  <ProductTypeBadge productType={drug.productType} />
+                  <ProductTypeBadge productType={med.productType} />
                 </Link>
               </li>
-            );
-          })}
-        </ul>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {hasSearched && cabinetReady && (
+        <div className="flex flex-col gap-3">
+          {!showCatalog && (
+            <button
+              type="button"
+              onClick={() => setShowCatalog(true)}
+              className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 hover:border-[var(--brand-sage-deep)]"
+            >
+              {fdaLoading
+                ? "Looking up more medications…"
+                : catalogCount > 0
+                  ? `Show more (${catalogCount} to add)`
+                  : "Show more"}
+            </button>
+          )}
+
+          {showCatalog && (
+            <section className="flex flex-col gap-2">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                  Add new medication
+                </h2>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Have the bottle? Scanning it at the cabinet is faster.
+                </p>
+              </div>
+
+              {fdaLoading && (
+                <p className="text-sm text-zinc-500" role="status">
+                  Looking up via RxNorm + openFDA…
+                </p>
+              )}
+
+              {catalogReady && !fdaLoading && catalogCount === 0 && (
+                <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
+                  No medications found for “{submittedQuery}” — check the spelling on the
+                  label.
+                </p>
+              )}
+
+              {catalogReady && catalogCount > 0 && (
+                <ul className="flex flex-col gap-2">
+                  {catalogResults!.map((drug, index) => (
+                    <li key={`${drug.brandName}-${drug.genericName}-${index}`}>
+                      <Link
+                        href={`/drugs/${encodeURIComponent(drug.brandName)}?from=catalog`}
+                        className="flex items-start justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 transition-colors hover:border-[var(--brand-sage-deep)] hover:bg-[var(--brand-sage)]/40"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-lg font-semibold text-zinc-900">
+                            {drug.brandName}
+                            {drug.genericName ? (
+                              <span className="ml-1 text-sm font-normal text-zinc-500">
+                                ({drug.genericName})
+                              </span>
+                            ) : null}
+                          </p>
+                          <p className="mt-1 truncate text-sm text-zinc-600">
+                            {purposeOneLine(drug.purpose)}
+                          </p>
+                        </div>
+                        <ProductTypeBadge productType={drug.productType} />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+        </div>
       )}
     </div>
   );

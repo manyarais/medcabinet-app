@@ -19,7 +19,7 @@ model Medication {
   warnings        String?
   dosage          String?
   expirationDate  String?
-  compartment     Int? // 1–18; null while pending; never the scanner bay (18) when active
+  compartment     Int? // 1–18; null while pending
   compartmentSize String? // "medium" | "thin" | "big" — auto-filled from compartment config
   outOfCabinet    Boolean    @default(false)
   status          String     @default("active") // "active" | "pending_review"
@@ -43,6 +43,8 @@ model Prescription {
   medication   Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
   dosesPerDay  Int
   pillsPerDose Int
+  /// JSON array of local "HH:MM" times, length must equal dosesPerDay (e.g. ["08:00","20:00"]).
+  doseTimes    String     @default("[]")
   startDate    String // YYYY-MM-DD (required — prescriptions are finite)
   endDate      String // YYYY-MM-DD (required — prescriptions are finite)
 }

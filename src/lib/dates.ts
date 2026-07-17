@@ -63,3 +63,46 @@ export function formatDisplayDate(dateStr: string): string {
     day: "numeric",
   });
 }
+
+export function formatMonthTitle(year: number, monthIndex: number): string {
+  return new Date(year, monthIndex, 1).toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+/** Sunday-start month grid cells (null = padding outside the month). */
+export function buildMonthGrid(
+  year: number,
+  monthIndex: number,
+): Array<string | null> {
+  const first = new Date(year, monthIndex, 1);
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const startPad = first.getDay(); // 0 = Sunday
+  const cells: Array<string | null> = [];
+
+  for (let i = 0; i < startPad; i++) {
+    cells.push(null);
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push(formatDateLocal(new Date(year, monthIndex, day)));
+  }
+  while (cells.length % 7 !== 0) {
+    cells.push(null);
+  }
+  return cells;
+}
+
+export function shiftMonth(
+  year: number,
+  monthIndex: number,
+  delta: number,
+): { year: number; monthIndex: number } {
+  const date = new Date(year, monthIndex + delta, 1);
+  return { year: date.getFullYear(), monthIndex: date.getMonth() };
+}
+
+export function parseYearMonth(dateStr: string): { year: number; monthIndex: number } {
+  const [y, m] = dateStr.split("-").map(Number);
+  return { year: y, monthIndex: m - 1 };
+}

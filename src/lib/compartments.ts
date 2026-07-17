@@ -6,7 +6,7 @@ export type CompartmentSize = "medium" | "thin" | "big";
 export type CompartmentConfig = {
   number: number;
   size: CompartmentSize;
-  /** Only the scanner bay is non-assignable. */
+  /** Reserved for a future non-assignable scanner bay (none currently). */
   isScanner: boolean;
   module: "A" | "B";
 };
@@ -14,7 +14,7 @@ export type CompartmentConfig = {
 /**
  * Two modules, 18 bays total.
  * Module A = 1–9, Module B = 10–18.
- * Medium: 1–8, 13–14, 16–17 | Thin: 9–12 | Big: 15 | Scanner: 18
+ * Medium: 1–8, 13–14, 16–17 | Thin: 9–12 | Big: 15, 18
  */
 export const COMPARTMENTS: CompartmentConfig[] = [
   // Module A
@@ -36,13 +36,14 @@ export const COMPARTMENTS: CompartmentConfig[] = [
   { number: 15, size: "big", isScanner: false, module: "B" },
   { number: 16, size: "medium", isScanner: false, module: "B" },
   { number: 17, size: "medium", isScanner: false, module: "B" },
-  { number: 18, size: "big", isScanner: true, module: "B" },
+  { number: 18, size: "big", isScanner: false, module: "B" },
 ];
 
 export const TOTAL_COMPARTMENTS = COMPARTMENTS.length;
 
+/** Currently unused — no dedicated scanner bay in the 18-slot layout. */
 export const SCANNER_COMPARTMENT =
-  COMPARTMENTS.find((c) => c.isScanner)?.number ?? 18;
+  COMPARTMENTS.find((c) => c.isScanner)?.number ?? null;
 
 const byNumber = new Map(COMPARTMENTS.map((c) => [c.number, c]));
 
@@ -64,7 +65,7 @@ export function isScannerCompartment(compartment: number): boolean {
   return getCompartmentConfig(compartment)?.isScanner === true;
 }
 
-/** Compartment numbers that can hold a medication (excludes scanner). */
+/** Compartment numbers that can hold a medication. */
 export function assignableCompartments(): number[] {
   return COMPARTMENTS.filter((c) => !c.isScanner).map((c) => c.number);
 }

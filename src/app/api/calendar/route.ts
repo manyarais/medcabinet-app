@@ -7,6 +7,7 @@ import {
   isValidDateString,
   todayLocal,
 } from "@/lib/dates";
+import { parseDoseTimes } from "@/lib/doseTimes";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -16,8 +17,12 @@ export type CalendarDose = {
   brandName: string;
   compartment: number | null;
   doseIndex: number;
+  /** Slot index within this med's combined day (1…N); used for take/untake ordering. */
+  absoluteIndex: number;
   dosesPerDay: number;
   pillsPerDose: number;
+  /** Local HH:MM scheduled time for this dose slot. */
+  scheduledTime: string;
   taken: boolean;
 };
 
@@ -67,18 +72,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // If a med has multiple overlapping prescriptions, sum dosesPerDay for the day
-  // but still share one UsageLog pool per medication (count-based Dose 1…N).
-  const dosesPerDayByMed = new Map<number, number>();
-  for (const rx of active) {
-    dosesPerDayByMed.set(
-      rx.medicationId,
-      (dosesPerDayByMed.get(rx.medicationId) ?? 0) + rx.dosesPerDay,
-    );
-  }
-
   const doses: CalendarDose[] = [];
   for (const rx of active) {
+    const times = parseDoseTimes(rx.doseTimes, rx.dosesPerDay);
     for (let doseIndex = 1; doseIndex <= rx.dosesPerDay; doseIndex++) {
       // Offset within this med's combined day slots by previous rx on same med.
       const priorSlots = active
@@ -98,12 +94,20 @@ export async function GET(request: NextRequest) {
         brandName: rx.medication.brandName,
         compartment: rx.medication.compartment,
         doseIndex,
+        absoluteIndex,
         dosesPerDay: rx.dosesPerDay,
         pillsPerDose: rx.pillsPerDose,
+        scheduledTime: times[doseIndex - 1] ?? "08:00",
         taken: absoluteIndex <= takenCount,
       });
     }
   }
+
+  doses.sort((a, b) => {
+    const byTime = a.scheduledTime.localeCompare(b.scheduledTime);
+    if (byTime !== 0) return byTime;
+    return a.brandName.localeCompare(b.brandName);
+  });
 
   const today = todayLocal();
   return NextResponse.json({

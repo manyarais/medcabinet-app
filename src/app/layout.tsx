@@ -17,6 +17,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Pillio",
   description: "Pillio — smart medicine cabinet companion. Search medications and manage your cabinet.",
+  applicationName: "Pillio",
+  appleWebApp: {
+    capable: true,
+    title: "Pillio",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [{ url: "/app-icon.png", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({

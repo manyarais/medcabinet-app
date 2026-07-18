@@ -3,7 +3,7 @@
 // Symptom lookup UI (Phase 3): match OTC cabinet labels; log "Take this".
 
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type Match = {
   medicationId: number;
@@ -31,6 +31,11 @@ type SearchResponse = {
   error?: string;
 };
 
+type HistoryResponse = {
+  entries: UsedBefore[];
+  error?: string;
+};
+
 export function SymptomSearch() {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +43,22 @@ export function SymptomSearch() {
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [takeMessage, setTakeMessage] = useState<string | null>(null);
   const [takingId, setTakingId] = useState<number | null>(null);
+  const [recent, setRecent] = useState<UsedBefore[]>([]);
+
+  async function loadRecent() {
+    try {
+      const response = await fetch("/api/symptoms/history?limit=15");
+      if (!response.ok) return;
+      const data = (await response.json()) as HistoryResponse;
+      setRecent(data.entries ?? []);
+    } catch {
+      // Best-effort history strip.
+    }
+  }
+
+  useEffect(() => {
+    void loadRecent();
+  }, []);
 
   async function runSearch(symptom: string, options?: { preserveTakeMessage?: boolean }) {
     setIsLoading(true);
@@ -88,7 +109,8 @@ export function SymptomSearch() {
         return;
       }
       await runSearch(result.symptom, { preserveTakeMessage: true });
-      setTakeMessage(`Logged taking ${match.brandName}; marked it out of the cabinet.`);
+      await loadRecent();
+      setTakeMessage(`Logged taking ${match.brandName} for “${result.symptom}”.`);
     } catch {
       setTakeMessage("Network error while logging.");
     } finally {
@@ -181,29 +203,60 @@ export function SymptomSearch() {
 
           {result.usedBefore.length > 0 && (
             <section className="flex flex-col gap-3">
-              <h2 className="text-lg font-semibold text-zinc-900">You&apos;ve used before</h2>
-              <ul className="flex flex-col gap-2">
-                {result.usedBefore.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="flex items-center justify-between gap-3 rounded border border-zinc-200 bg-white px-4 py-3"
-                  >
-                    <div>
-                      <p className="font-medium text-zinc-900">{entry.brandName}</p>
-                      <p className="text-xs text-zinc-500">
-                        {new Date(entry.takenAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <p className="text-2xl font-bold tabular-nums text-[var(--brand-sage-deep)]">
-                      {entry.compartment != null ? `#${entry.compartment}` : "—"}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+              <h2 className="text-lg font-semibold text-zinc-900">
+                Past takes for “{result.symptom}”
+              </h2>
+              <UsageList entries={result.usedBefore} />
             </section>
           )}
         </>
       )}
+
+      <section className="flex flex-col gap-3 border-t border-zinc-200 pt-6">
+        <h2 className="text-lg font-semibold text-zinc-900">Recent symptom takes</h2>
+        <p className="text-xs text-zinc-500">
+          Saved in your local database whenever you tap Take this (OTC only).
+        </p>
+        {recent.length === 0 ? (
+          <p className="rounded border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
+            No takes logged yet. Search a symptom and tap Take this.
+          </p>
+        ) : (
+          <UsageList entries={recent} showSymptom />
+        )}
+      </section>
     </div>
+  );
+}
+
+function UsageList({
+  entries,
+  showSymptom = false,
+}: {
+  entries: UsedBefore[];
+  showSymptom?: boolean;
+}) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {entries.map((entry) => (
+        <li
+          key={entry.id}
+          className="flex items-center justify-between gap-3 rounded border border-zinc-200 bg-white px-4 py-3"
+        >
+          <div className="min-w-0">
+            <p className="font-medium text-zinc-900">{entry.brandName}</p>
+            {showSymptom && entry.symptom && (
+              <p className="text-xs text-zinc-600">for {entry.symptom}</p>
+            )}
+            <p className="text-xs text-zinc-500">
+              {new Date(entry.takenAt).toLocaleString()}
+            </p>
+          </div>
+          <p className="text-2xl font-bold tabular-nums text-[var(--brand-sage-deep)]">
+            {entry.compartment != null ? `#${entry.compartment}` : "—"}
+          </p>
+        </li>
+      ))}
+    </ul>
   );
 }

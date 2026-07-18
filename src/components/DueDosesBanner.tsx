@@ -7,6 +7,7 @@ import {
   formatDoseTimeDisplay,
   type DoseUrgency,
 } from "@/lib/doseTimes";
+import { notifyDueDoses } from "@/lib/doseNotifications";
 import { todayLocal } from "@/lib/dates";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -74,6 +75,16 @@ export function DueDosesBanner() {
       setAllDoses(json.doses);
       setItems(attention);
       setError(null);
+      notifyDueDoses(
+        today,
+        attention.map((dose) => ({
+          medicationId: dose.medicationId,
+          brandName: dose.brandName,
+          absoluteIndex: dose.absoluteIndex,
+          scheduledTime: dose.scheduledTime,
+          urgency: dose.urgency,
+        })),
+      );
     } catch {
       // Silent — banner is best-effort.
     }
@@ -133,7 +144,7 @@ export function DueDosesBanner() {
       }`}
       role="status"
     >
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 px-4 py-2.5">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-2.5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-zinc-900">

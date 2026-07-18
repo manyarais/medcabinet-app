@@ -25,6 +25,7 @@ model Medication {
   status          String     @default("active") // "active" | "pending_review"
   addedAt         DateTime   @default(now())
   rawLabelText    String? // OCR dump from hardware scans (Phase 4)
+  personName      String? // whose library this belongs to (from the PATIENT line on prescription labels); null = household
   usageLogs       UsageLog[]
 }
 

@@ -152,7 +152,7 @@ export async function nextFreeCompartment(): Promise<number | null> {
 // solid green). Falls back to the scanner's own /flash (2 strip units) if
 // the cabinet board isn't reachable, so the demo still lights up mid-rewiring.
 export async function notifyScanDone(
-  deviceUrl: string,
+  deviceUrl: string | null,
   compartment: number | null,
 ): Promise<void> {
   if (compartment == null) return; // cabinet full — nothing to flash
@@ -168,11 +168,16 @@ export async function notifyScanDone(
       // cabinet board not at this address — try the next one
     }
   }
-  fetch(`${deviceUrl}/flash?unit=${unit % 2}`, { method: "POST" }).catch(() => {});
+  // Phone-camera scans have no scanner device to fall back to.
+  if (deviceUrl) {
+    fetch(`${deviceUrl}/flash?unit=${unit % 2}`, { method: "POST" }).catch(() => {});
+  }
 }
 
 // Ask OpenAI vision to read the label across all the burst photos.
-async function readPhotosWithOpenAI(apiKey: string, photos: Buffer[]): Promise<string> {
+// Used by both scan paths: the ESP32 turntable burst and photos taken with
+// the phone camera (user rotates the bottle by hand between shots).
+export async function readPhotosWithOpenAI(apiKey: string, photos: Buffer[]): Promise<string> {
   const images = photos.map((jpeg) => ({
     type: "image_url" as const,
     image_url: { url: `data:image/jpeg;base64,${jpeg.toString("base64")}`, detail: "high" },

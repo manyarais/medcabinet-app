@@ -4,6 +4,7 @@
 
 import { ClearLibraryButton } from "@/components/ClearLibraryButton";
 import { DeviceScanButton } from "@/components/DeviceScanButton";
+import { PhoneScanForm } from "@/components/PhoneScanForm";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { prisma } from "@/lib/db";
 import type { Medication } from "@prisma/client";
@@ -28,13 +29,14 @@ export default async function ScanPage() {
       <header className="mb-6">
         <h1 className="text-2xl font-semibold text-zinc-900">Scan</h1>
         <p className="mt-1 text-sm text-zinc-600">
-          Scan a pill bottle with the cabinet hardware. Prescription bottles
-          are filed under the patient&apos;s name; everything else goes to the
-          Household library.
+          Scan a pill bottle with the cabinet hardware or your camera.
+          Prescription bottles are filed under the patient&apos;s name;
+          everything else goes to the Household library.
         </p>
       </header>
 
       <DeviceScanButton />
+      <PhoneScanForm />
 
       <section className="mt-8">
         <div className="flex items-center justify-between gap-2">

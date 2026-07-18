@@ -15,7 +15,11 @@ const PHASES: Array<[number, string]> = [
 ];
 
 type ScanResponse = {
-  medication?: { brandName: string; personName: string | null };
+  medication?: {
+    brandName: string;
+    personName: string | null;
+    compartment: number | null;
+  };
   updatedExisting?: boolean;
   error?: string;
 };
@@ -55,10 +59,14 @@ export function DeviceScanButton() {
       }
 
       const person = data.medication.personName ?? "Household";
+      const spot =
+        data.medication.compartment != null
+          ? ` Put it in compartment ${data.medication.compartment} — its light is flashing.`
+          : " The cabinet is full, so it's saved without a compartment.";
       setMessage(
-        data.updatedExisting
+        (data.updatedExisting
           ? `Updated ${data.medication.brandName} in ${person}'s library.`
-          : `Added ${data.medication.brandName} to ${person}'s library.`,
+          : `Added ${data.medication.brandName} to ${person}'s library.`) + spot,
       );
       router.refresh();
     } catch {

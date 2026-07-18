@@ -3,14 +3,17 @@
 // rotates the bottle, then an AI vision model reads the label. The parsed
 // result is saved through the same intake path as POST /api/scan.
 
+import { logActivity } from "@/lib/activity";
+import { saveScanPhotos } from "@/lib/scanPhotos";
 import { intakeScan, notifyScanDone, parseTranscript, runDeviceScan } from "@/lib/scanner";
 import { NextResponse } from "next/server";
 
 export async function POST() {
   let transcript: string;
   let deviceUrl: string;
+  let photos: Buffer[];
   try {
-    ({ transcript, deviceUrl } = await runDeviceScan());
+    ({ transcript, deviceUrl, photos } = await runDeviceScan());
   } catch (error) {
     console.error("Device scan failed:", error);
     const message =
@@ -34,14 +37,22 @@ export async function POST() {
   }
 
   try {
-    const result = await intakeScan(fields);
-    // Flash that medicine's compartment strip until its switch is pressed.
-    // Fire-and-forget — probing for the cabinet board must not delay the reply.
-    void notifyScanDone(deviceUrl, result.medication.compartment);
+    const photoUrls = await saveScanPhotos(photos).catch(() => [] as string[]);
+    const result = await intakeScan(fields, photoUrls);
+    // Rescan of a known bottle: flash its home compartment right away. New
+    // bottles wait for user confirmation before getting a compartment.
+    if (result.updatedExisting) {
+      void notifyScanDone(deviceUrl, result.medication.compartment);
+    }
+    void logActivity("scan_saved", {
+      medicationId: result.medication.id,
+      detail: `hardware scan: ${result.medication.brandName}`,
+    });
     return NextResponse.json({
       medication: result.medication,
       matched: result.matched,
       updatedExisting: result.updatedExisting,
+      pendingReview: !result.updatedExisting,
       transcript,
     });
   } catch (error) {

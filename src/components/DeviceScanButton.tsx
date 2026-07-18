@@ -21,6 +21,7 @@ type ScanResponse = {
     compartment: number | null;
   };
   updatedExisting?: boolean;
+  pendingReview?: boolean;
   error?: string;
 };
 
@@ -59,15 +60,17 @@ export function DeviceScanButton() {
       }
 
       const person = data.medication.personName ?? "Household";
-      const spot =
-        data.medication.compartment != null
-          ? ` Put it in compartment ${data.medication.compartment} — its light is flashing.`
-          : " The cabinet is full, so it's saved without a compartment.";
-      setMessage(
-        (data.updatedExisting
-          ? `Updated ${data.medication.brandName} in ${person}'s library.`
-          : `Added ${data.medication.brandName} to ${person}'s library.`) + spot,
-      );
+      if (data.updatedExisting) {
+        const spot =
+          data.medication.compartment != null
+            ? ` Put it back in compartment ${data.medication.compartment} — its light is flashing.`
+            : "";
+        setMessage(`Updated ${data.medication.brandName} in ${person}'s library.` + spot);
+      } else {
+        setMessage(
+          `Scanned ${data.medication.brandName} — review and confirm it below.`,
+        );
+      }
       router.refresh();
     } catch {
       setIsError(true);

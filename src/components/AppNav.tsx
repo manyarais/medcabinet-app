@@ -9,6 +9,10 @@ const links = [
   { href: "/symptoms", label: "Symptoms" },
   { href: "/scan", label: "Scan" },
   { href: "/calendar", label: "Calendar" },
+  { href: "/alerts", label: "Alerts" },
+  { href: "/expiry", label: "Expiry" },
+  { href: "/travel", label: "Travel" },
+  { href: "/report", label: "Report" },
   { href: "/settings", label: "Settings" },
 ];
 

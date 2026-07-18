@@ -4,20 +4,43 @@
 
 import { ClearLibraryButton } from "@/components/ClearLibraryButton";
 import { DeviceScanButton } from "@/components/DeviceScanButton";
+import { PendingScanCard, type IngredientWarning } from "@/components/PendingScanCard";
 import { PhoneScanForm } from "@/components/PhoneScanForm";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { prisma } from "@/lib/db";
+import { overlapsForMedication } from "@/lib/ingredients";
+import { parsePhotoPaths } from "@/lib/scanPhotos";
 import type { Medication } from "@prisma/client";
 
 export default async function ScanPage() {
-  // Everything that came from the hardware scanner has a rawLabelText dump.
+  // Everything that came from a scanner has a rawLabelText dump.
   const scanned = await prisma.medication.findMany({
-    where: { rawLabelText: { not: null } },
+    where: { rawLabelText: { not: null }, status: { not: "disposed" } },
     orderBy: { addedAt: "desc" },
   });
+  const pending = scanned.filter((med) => med.status === "pending_review");
+
+  // Duplicate-ingredient info for each pending scan, vs the active household.
+  const activeMeds = await prisma.medication.findMany({
+    where: { status: "active" },
+    select: { id: true, brandName: true, genericName: true, compartment: true },
+  });
+  const warningsById = new Map<number, IngredientWarning[]>(
+    pending.map((med) => [
+      med.id,
+      overlapsForMedication(med, activeMeds).map((overlap) => ({
+        ingredient: overlap.ingredient,
+        otherNames: overlap.medications
+          .filter((m) => m.id !== med.id)
+          .map((m) =>
+            m.compartment != null ? `${m.brandName} (compartment ${m.compartment})` : m.brandName,
+          ),
+      })),
+    ]),
+  );
 
   const byPerson = new Map<string, Medication[]>();
-  for (const med of scanned) {
+  for (const med of scanned.filter((m) => m.status !== "pending_review")) {
     const person = med.personName ?? "Household";
     const list = byPerson.get(person) ?? [];
     list.push(med);
@@ -37,6 +60,35 @@ export default async function ScanPage() {
 
       <DeviceScanButton />
       <PhoneScanForm />
+
+      {pending.length > 0 && (
+        <section className="mt-8 flex flex-col gap-4">
+          <h2 className="text-lg font-semibold text-zinc-900">
+            Waiting for your review
+          </h2>
+          {pending.map((med) => (
+            <PendingScanCard
+              key={med.id}
+              med={{
+                id: med.id,
+                brandName: med.brandName,
+                genericName: med.genericName,
+                dosage: med.dosage,
+                form: med.form,
+                expirationDate: med.expirationDate,
+                personName: med.personName,
+                prescriber: med.prescriber,
+                pharmacy: med.pharmacy,
+                rxNumber: med.rxNumber,
+                refills: med.refills,
+                rawLabelText: med.rawLabelText,
+                photos: parsePhotoPaths(med.photoPaths),
+              }}
+              warnings={warningsById.get(med.id) ?? []}
+            />
+          ))}
+        </section>
+      )}
 
       <section className="mt-8">
         <div className="flex items-center justify-between gap-2">

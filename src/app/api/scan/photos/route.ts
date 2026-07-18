@@ -6,6 +6,8 @@
 // Body: { photos: string[] } — JPEG data URLs (or raw base64), 1–6 of them,
 // already downscaled client-side so the payload stays small.
 
+import { logActivity } from "@/lib/activity";
+import { saveScanPhotos } from "@/lib/scanPhotos";
 import {
   intakeScan,
   notifyScanDone,
@@ -87,13 +89,22 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await intakeScan(fields);
-    // Flash the assigned compartment strip; no hardware-scanner fallback here.
-    void notifyScanDone(null, result.medication.compartment);
+    const photoUrls = await saveScanPhotos(buffers).catch(() => [] as string[]);
+    const result = await intakeScan(fields, photoUrls);
+    // Rescan of a known bottle: flash its home compartment right away. New
+    // bottles wait for user confirmation before getting a compartment.
+    if (result.updatedExisting) {
+      void notifyScanDone(null, result.medication.compartment);
+    }
+    void logActivity("scan_saved", {
+      medicationId: result.medication.id,
+      detail: `camera scan: ${result.medication.brandName}`,
+    });
     return NextResponse.json({
       medication: result.medication,
       matched: result.matched,
       updatedExisting: result.updatedExisting,
+      pendingReview: !result.updatedExisting,
       transcript,
     });
   } catch (error) {

@@ -1,6 +1,7 @@
 // App settings — reminders and other preferences (grows over time).
 
 import { CallReminderPanel } from "@/components/CallReminderPanel";
+import { DemoResetButton } from "@/components/DemoResetButton";
 import { DoseReminderToggle } from "@/components/DoseReminderToggle";
 
 export default function SettingsPage() {
@@ -19,6 +20,13 @@ export default function SettingsPage() {
         </h2>
         <DoseReminderToggle />
         <CallReminderPanel />
+      </section>
+
+      <section className="mt-8 flex flex-col gap-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+          Demo tools
+        </h2>
+        <DemoResetButton />
       </section>
     </main>
   );

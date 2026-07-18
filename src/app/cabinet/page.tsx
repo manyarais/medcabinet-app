@@ -5,8 +5,10 @@
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { CabinetOutToggleButton } from "@/components/CabinetOutToggleButton";
 import { CabinetJumpSearch } from "@/components/CabinetJumpSearch";
+import { FlashCompartmentButton } from "@/components/FlashCompartmentButton";
 import { COMPARTMENTS, type CompartmentConfig } from "@/lib/compartments";
 import { prisma } from "@/lib/db";
+import { expiryStatusFor, type ExpiryStatus } from "@/lib/expiration";
 import Link from "next/link";
 
 type MedInCell = {
@@ -14,6 +16,7 @@ type MedInCell = {
   brandName: string;
   productType: string;
   outOfCabinet: boolean;
+  expiry: ExpiryStatus;
 };
 
 export default async function CabinetPage() {
@@ -31,6 +34,7 @@ export default async function CabinetPage() {
           brandName: med.brandName,
           productType: med.productType,
           outOfCabinet: med.outOfCabinet,
+          expiry: expiryStatusFor(med.expirationDate),
         },
       ]),
   );
@@ -123,6 +127,16 @@ function CompartmentCell({
               OUT
             </span>
           )}
+          {med.expiry === "expired" && (
+            <span className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              EXPIRED
+            </span>
+          )}
+          {med.expiry === "soon" && (
+            <span className="rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-amber-950">
+              EXPIRES SOON
+            </span>
+          )}
           <ProductTypeBadge productType={med.productType} />
         </div>
       </div>
@@ -132,11 +146,14 @@ function CompartmentCell({
       >
         {med.brandName}
       </Link>
-      <CabinetOutToggleButton
-        medicationId={med.id}
-        brandName={med.brandName}
-        outOfCabinet={med.outOfCabinet}
-      />
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <FlashCompartmentButton compartment={config.number} />
+        <CabinetOutToggleButton
+          medicationId={med.id}
+          brandName={med.brandName}
+          outOfCabinet={med.outOfCabinet}
+        />
+      </div>
     </div>
   );
 }

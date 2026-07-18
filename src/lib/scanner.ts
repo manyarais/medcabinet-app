@@ -5,7 +5,8 @@
 
 import { lookupDrugs } from "@/lib/drugs";
 import { prisma } from "@/lib/db";
-import { sizeForCompartment, TOTAL_COMPARTMENTS } from "@/lib/compartments";
+import { TOTAL_COMPARTMENTS } from "@/lib/compartments";
+import { flashCompartment } from "@/lib/cabinetBoard";
 import type { Medication } from "@prisma/client";
 
 // Where the scanner might live — DEVICE_URL first (comma-separated ok), then
@@ -64,8 +65,10 @@ const READ_PROMPT =
   "and merge every photo into ONE transcript with nothing repeated. Output plain text lines " +
   "in this order, skipping ones you cannot see, each starting with the exact uppercase " +
   "keyword and a colon: PATIENT (the persons name printed on a prescription label, if any), " +
-  "NAME, GENERIC (generic/chemical name), STRENGTH, ACTIVE INGREDIENTS, USES, DIRECTIONS, " +
-  "WARNINGS, EXPIRY, OTHER (lot, count, manufacturer). Mark uncertain words with [?]. " +
+  "NAME, GENERIC (generic/chemical name), STRENGTH, FORM (tablets, capsules, liquid, etc.), " +
+  "ACTIVE INGREDIENTS, USES, DIRECTIONS, WARNINGS, EXPIRY, PRESCRIBER (the doctor on a " +
+  "prescription label), PHARMACY (the pharmacy name), RX NUMBER, REFILLS, OTHER (lot, count, " +
+  "manufacturer). Mark uncertain words with [?]. " +
   "Only if you cannot make out a single word or brand in any photo, reply with exactly: UNREADABLE";
 
 export type ScanFields = {
@@ -75,6 +78,11 @@ export type ScanFields = {
   expirationDate?: string | null;
   personName?: string | null;
   rawLabelText?: string | null;
+  form?: string | null;
+  prescriber?: string | null;
+  pharmacy?: string | null;
+  rxNumber?: string | null;
+  refills?: string | null;
 };
 
 // Ask the ESP32 to take the 6 turntable photos, then read the label with AI.
@@ -86,7 +94,11 @@ export type ScanFields = {
 //    own big uploads get dropped; also faster.
 //  - No key: fall back to the device's on-board reader (POST /read), which
 //    works on home/hotspot networks.
-export async function runDeviceScan(): Promise<{ transcript: string; deviceUrl: string }> {
+export async function runDeviceScan(): Promise<{
+  transcript: string;
+  deviceUrl: string;
+  photos: Buffer[];
+}> {
   const deviceUrl = await findDevice();
   // Each /jpg response IS the photo, so keep the bytes — refetching them from
   // the device later would double the (slow on campus) device traffic.
@@ -111,7 +123,7 @@ export async function runDeviceScan(): Promise<{ transcript: string; deviceUrl: 
 
   if (process.env.OPENAI_API_KEY) {
     const transcript = await readPhotosWithOpenAI(process.env.OPENAI_API_KEY, photos);
-    return { transcript, deviceUrl };
+    return { transcript, deviceUrl, photos };
   }
 
   const read = await fetch(`${deviceUrl}/read?n=${SHOTS}`, { method: "POST" });
@@ -119,18 +131,8 @@ export async function runDeviceScan(): Promise<{ transcript: string; deviceUrl: 
   if (!read.ok) {
     throw new Error(`Scanner AI read failed: ${transcript}`);
   }
-  return { transcript, deviceUrl };
+  return { transcript, deviceUrl, photos };
 }
-
-// The compartment LEDs + switches live on the second ESP32 (CabinetLights
-// sketch, 8 strip/switch units), reachable by mDNS name or the addresses in
-// CABINET_URL (comma-separated ok).
-const CABINET_URL_CANDIDATES = [
-  ...(process.env.CABINET_URL ?? "").split(",").map((u) => u.trim()).filter(Boolean),
-  "http://172.20.10.2",    // its spot on the iPhone hotspot
-  "http://10.103.210.34",  // its spot on AirPennNet-Device (needs MAC registered)
-  "http://cabinet.local",
-];
 
 // Lowest compartment (1..8) with no medication assigned, or null when the
 // cabinet is full. The DB is the source of truth, so the app's cabinet grid
@@ -147,30 +149,18 @@ export async function nextFreeCompartment(): Promise<number | null> {
   return null;
 }
 
-// Tell the cabinet board a scan was saved so it blinks that compartment's
-// strip (the user drops the bottle in and presses its switch to latch it
-// solid green). Falls back to the scanner's own /flash (2 strip units) if
-// the cabinet board isn't reachable, so the demo still lights up mid-rewiring.
+// Blink a compartment's strip until the user presses its switch. Falls back
+// to the scanner's own /flash (2 strip units) if the cabinet board isn't
+// reachable, so the demo still lights up mid-rewiring.
 export async function notifyScanDone(
   deviceUrl: string | null,
   compartment: number | null,
 ): Promise<void> {
-  if (compartment == null) return; // cabinet full — nothing to flash
-  const unit = compartment - 1;
-  for (const base of [...new Set(CABINET_URL_CANDIDATES)]) {
-    try {
-      const res = await fetch(`${base}/flash?unit=${unit}`, {
-        method: "POST",
-        signal: AbortSignal.timeout(3000),
-      });
-      if (res.ok) return;
-    } catch {
-      // cabinet board not at this address — try the next one
-    }
-  }
+  if (compartment == null) return; // nothing assigned — nothing to flash
+  const flashed = await flashCompartment(compartment);
   // Phone-camera scans have no scanner device to fall back to.
-  if (deviceUrl) {
-    fetch(`${deviceUrl}/flash?unit=${unit % 2}`, { method: "POST" }).catch(() => {});
+  if (!flashed && deviceUrl) {
+    fetch(`${deviceUrl}/flash?unit=${(compartment - 1) % 2}`, { method: "POST" }).catch(() => {});
   }
 }
 
@@ -228,6 +218,11 @@ export function parseTranscript(transcript: string): ScanFields | null {
     expirationDate: fields["EXPIRY"] ?? null,
     personName: fields["PATIENT"] ?? null,
     rawLabelText: transcript,
+    form: fields["FORM"] ?? null,
+    prescriber: fields["PRESCRIBER"] ?? null,
+    pharmacy: fields["PHARMACY"] ?? null,
+    rxNumber: fields["RX NUMBER"] ?? null,
+    refills: fields["REFILLS"] ?? null,
   };
 }
 
@@ -239,9 +234,17 @@ export type ScanIntakeResult = {
 
 // Save a scan: normalize the name (RxNorm) and enrich from openFDA, preferring
 // values read off the physical bottle (dosage, expiry) over database values.
-// Rescanning the same bottle for the same person updates the row instead of
-// duplicating it.
-export async function intakeScan(fields: ScanFields): Promise<ScanIntakeResult> {
+//
+// New bottles are saved as `pending_review` with NO compartment — the user
+// checks the extracted fields against the label photos on /scan, edits
+// anything the AI got wrong, and only then does confirmation assign a
+// compartment and flash its light. Rescanning a bottle already in this
+// person's library updates the row in place (no re-review needed) and keeps
+// its compartment so the flash guides the bottle back to its usual spot.
+export async function intakeScan(
+  fields: ScanFields,
+  photoUrls: string[] = [],
+): Promise<ScanIntakeResult> {
   const cleanName = fields.name.replace(/\[\?\]/g, "").trim();
   const personName = fields.personName?.replace(/\[\?\]/g, "").trim() || null;
 
@@ -268,28 +271,22 @@ export async function intakeScan(fields: ScanFields): Promise<ScanIntakeResult> 
     expirationDate: fields.expirationDate?.trim() || null,
     rawLabelText: fields.rawLabelText ?? null,
     personName,
+    form: fields.form?.trim() || null,
+    prescriber: fields.prescriber?.trim() || null,
+    pharmacy: fields.pharmacy?.trim() || null,
+    rxNumber: fields.rxNumber?.trim() || null,
+    refills: fields.refills?.trim() || null,
+    ...(photoUrls.length > 0 ? { photoPaths: JSON.stringify(photoUrls) } : {}),
   };
 
-  if (existing) {
-    // Rescan of a known bottle: keep its compartment (the flash guides the
-    // bottle back to its usual spot); give it one if it never had one.
-    const compartment = existing.compartment ?? (await nextFreeCompartment());
+  if (existing && existing.status !== "disposed") {
     const medication = await prisma.medication.update({
       where: { id: existing.id },
-      data: {
-        ...scannedValues,
-        compartment,
-        compartmentSize: compartment != null ? sizeForCompartment(compartment) : null,
-        ...(compartment != null ? { status: "active", outOfCabinet: false } : {}),
-      },
+      data: scannedValues,
     });
     return { medication, matched: Boolean(match), updatedExisting: true };
   }
 
-  // New bottle: claim the next free compartment (1..8, same one the cabinet
-  // lights flash). Goes straight to active — the bottle is physically placed
-  // as part of the scan flow. Cabinet full → saved unassigned for review.
-  const compartment = await nextFreeCompartment();
   const medication = await prisma.medication.create({
     data: {
       brandName,
@@ -297,9 +294,8 @@ export async function intakeScan(fields: ScanFields): Promise<ScanIntakeResult> 
       indications: match?.indications ?? "",
       purpose: match?.purpose ?? null,
       warnings: match?.warnings ?? null,
-      compartment,
-      compartmentSize: compartment != null ? sizeForCompartment(compartment) : null,
-      status: compartment != null ? "active" : "pending_review",
+      compartment: null, // assigned at confirmation
+      status: "pending_review",
       ...scannedValues,
     },
   });

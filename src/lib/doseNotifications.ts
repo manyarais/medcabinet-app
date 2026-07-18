@@ -104,7 +104,7 @@ export function notifyDueDoses(date: string, doses: NotifyDose[]): void {
         body: `${formatDoseTimeDisplay(dose.scheduledTime)} · ${dose.brandName} (reminder only)`,
         tag: key,
         renotify: false,
-      });
+      } as NotificationOptions);
       notification.onclick = () => {
         window.focus();
         window.location.href = "/calendar";

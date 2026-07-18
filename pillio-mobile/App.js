@@ -2,7 +2,7 @@ import { WebView } from 'react-native-webview';
 import { StatusBar } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-const PILLIO_URL = 'http://172.20.10.2:3000'; // keep your working IP
+const PILLIO_URL = 'http://172.20.10.4:3000'; // Evan's laptop on the "Iphone 9" hotspot (scanner is .3, cabinet is .2)
 
 export default function App() {
   return (

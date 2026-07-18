@@ -37,7 +37,7 @@ export async function POST() {
     const result = await intakeScan(fields);
     // Flash that medicine's compartment strip until its switch is pressed.
     // Fire-and-forget — probing for the cabinet board must not delay the reply.
-    void notifyScanDone(deviceUrl);
+    void notifyScanDone(deviceUrl, result.medication.compartment);
     return NextResponse.json({
       medication: result.medication,
       matched: result.matched,

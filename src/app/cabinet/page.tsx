@@ -1,13 +1,11 @@
-// Cabinet grid page (Phase 2).
-// Two modules (A: 1–9, B: 10–18). Layout polish later — simple stacked groups for now.
+// Cabinet grid page.
+// One 8-bay unit, numbered 1–8 to match the physical light strips:
+// red = empty (strip solid red), green = full (strip solid green).
 
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { CabinetOutToggleButton } from "@/components/CabinetOutToggleButton";
 import { CabinetJumpSearch } from "@/components/CabinetJumpSearch";
-import {
-  compartmentsForModule,
-  type CompartmentConfig,
-} from "@/lib/compartments";
+import { COMPARTMENTS, type CompartmentConfig } from "@/lib/compartments";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 
@@ -57,49 +55,15 @@ export default async function CabinetPage() {
           </span>
         </div>
         <p className="mt-1 text-sm text-zinc-600">
-          Two modules (1–9 and 10–18). Big bays: 15 and 18.
+          8 compartments, numbered to match the cabinet lights. Scanned bottles
+          fill the lowest free slot — the flashing strip shows where to put them.
         </p>
       </header>
 
       <CabinetJumpSearch medications={jumpMeds} />
 
-      <div className="flex flex-col gap-8 sm:flex-row sm:items-start">
-        <ModuleGrid
-          title="Module A"
-          rangeLabel="1–9"
-          cells={compartmentsForModule("A")}
-          byCompartment={byCompartment}
-        />
-        <ModuleGrid
-          title="Module B"
-          rangeLabel="10–18"
-          cells={compartmentsForModule("B")}
-          byCompartment={byCompartment}
-        />
-      </div>
-    </main>
-  );
-}
-
-function ModuleGrid({
-  title,
-  rangeLabel,
-  cells,
-  byCompartment,
-}: {
-  title: string;
-  rangeLabel: string;
-  cells: CompartmentConfig[];
-  byCompartment: Map<number, MedInCell>;
-}) {
-  return (
-    <section className="min-w-0 flex-1">
-      <h2 className="mb-2 text-sm font-semibold text-zinc-800">
-        {title}{" "}
-        <span className="font-normal text-zinc-500">({rangeLabel})</span>
-      </h2>
-      <div className="grid grid-cols-3 gap-2">
-        {cells.map((cell) => (
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {COMPARTMENTS.map((cell) => (
           <CompartmentCell
             key={cell.number}
             config={cell}
@@ -107,7 +71,22 @@ function ModuleGrid({
           />
         ))}
       </div>
-    </section>
+    </main>
+  );
+}
+
+function LightDot({ state }: { state: "empty" | "full" | "out" }) {
+  const color =
+    state === "full"
+      ? "bg-emerald-500"
+      : state === "out"
+        ? "bg-amber-500"
+        : "bg-red-400";
+  return (
+    <span
+      className={`inline-block h-2.5 w-2.5 rounded-full ${color}`}
+      aria-hidden
+    />
   );
 }
 
@@ -118,24 +97,12 @@ function CompartmentCell({
   config: CompartmentConfig;
   med: MedInCell | undefined;
 }) {
-  if (config.isScanner) {
-    return (
-      <div className="flex min-h-28 flex-col items-center justify-center rounded border-2 border-dashed border-zinc-400 bg-zinc-200 px-2 py-3 text-center">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
-          Scanner
-        </p>
-        <p className="mt-1 text-lg font-bold text-zinc-800">#{config.number}</p>
-        <p className="mt-1 text-xs text-zinc-500">Not assignable</p>
-      </div>
-    );
-  }
-
   if (!med) {
     return (
-      <div className="flex min-h-28 flex-col items-center justify-center rounded border border-dashed border-zinc-300 bg-zinc-50 px-2 py-3 text-center">
-        <p className="text-xs text-zinc-400">Empty</p>
-        <p className="mt-1 text-sm font-medium text-zinc-500">#{config.number}</p>
-        <p className="mt-0.5 text-[10px] uppercase text-zinc-400">{config.size}</p>
+      <div className="flex min-h-28 flex-col items-center justify-center rounded border border-dashed border-red-200 bg-red-50/50 px-2 py-3 text-center">
+        <LightDot state="empty" />
+        <p className="mt-1 text-lg font-bold text-zinc-500">#{config.number}</p>
+        <p className="mt-0.5 text-xs text-zinc-400">Empty</p>
       </div>
     );
   }
@@ -143,11 +110,13 @@ function CompartmentCell({
   const slug = encodeURIComponent(med.brandName);
   const cellClassName = med.outOfCabinet
     ? "flex min-h-28 flex-col justify-between rounded border-2 border-dashed border-amber-400 bg-amber-50/60 px-2 py-3 opacity-75"
-    : "flex min-h-28 flex-col justify-between rounded border border-zinc-300 bg-white px-2 py-3 transition-colors hover:border-[var(--brand-sage-deep)]";
+    : "flex min-h-28 flex-col justify-between rounded border border-emerald-300 bg-emerald-50/60 px-2 py-3 transition-colors hover:border-emerald-500";
   return (
     <div className={cellClassName}>
       <div className="flex items-start justify-between gap-1">
-        <p className="text-xs font-semibold text-zinc-500">#{config.number}</p>
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+          <LightDot state={med.outOfCabinet ? "out" : "full"} />#{config.number}
+        </p>
         <div className="flex flex-col items-end gap-1">
           {med.outOfCabinet && (
             <span className="rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
@@ -163,7 +132,6 @@ function CompartmentCell({
       >
         {med.brandName}
       </Link>
-      <p className="mt-1 text-[10px] uppercase text-zinc-400">{config.size}</p>
       <CabinetOutToggleButton
         medicationId={med.id}
         brandName={med.brandName}

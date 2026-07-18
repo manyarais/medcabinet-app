@@ -5,6 +5,7 @@
 
 import { lookupDrugs } from "@/lib/drugs";
 import { prisma } from "@/lib/db";
+import { sizeForCompartment, TOTAL_COMPARTMENTS } from "@/lib/compartments";
 import type { Medication } from "@prisma/client";
 
 // Where the scanner might live — DEVICE_URL first (comma-separated ok), then
@@ -122,27 +123,40 @@ export async function runDeviceScan(): Promise<{ transcript: string; deviceUrl: 
 }
 
 // The compartment LEDs + switches live on the second ESP32 (CabinetLights
-// sketch, AW9523 expander, 7 compartments), reachable by mDNS name or the
-// addresses in CABINET_URL (comma-separated ok).
+// sketch, 8 strip/switch units), reachable by mDNS name or the addresses in
+// CABINET_URL (comma-separated ok).
 const CABINET_URL_CANDIDATES = [
   ...(process.env.CABINET_URL ?? "").split(",").map((u) => u.trim()).filter(Boolean),
   "http://172.20.10.2",    // its spot on the iPhone hotspot
   "http://10.103.210.34",  // its spot on AirPennNet-Device (needs MAC registered)
   "http://cabinet.local",
 ];
-// All 8 compartments are wired and mapped (see CabinetLights.ino pin map).
-const CABINET_UNITS = 8;
+
+// Lowest compartment (1..8) with no medication assigned, or null when the
+// cabinet is full. The DB is the source of truth, so the app's cabinet grid
+// and the physical lights stay in step (compartment N = board unit N-1).
+export async function nextFreeCompartment(): Promise<number | null> {
+  const occupied = await prisma.medication.findMany({
+    where: { compartment: { not: null } },
+    select: { compartment: true },
+  });
+  const taken = new Set(occupied.map((med) => med.compartment));
+  for (let c = 1; c <= TOTAL_COMPARTMENTS; c++) {
+    if (!taken.has(c)) return c;
+  }
+  return null;
+}
 
 // Tell the cabinet board a scan was saved so it blinks that compartment's
-// LED (the user presses its switch to latch it solid). Scans cycle through
-// the compartments; the counter resets whenever the dev server restarts.
-// Falls back to the scanner's own /flash (2 strip units) if the cabinet
-// board isn't reachable, so the demo still lights up mid-rewiring.
-let nextUnit = 0;
-
-export async function notifyScanDone(deviceUrl: string): Promise<void> {
-  const unit = nextUnit;
-  nextUnit = (nextUnit + 1) % CABINET_UNITS;
+// strip (the user drops the bottle in and presses its switch to latch it
+// solid green). Falls back to the scanner's own /flash (2 strip units) if
+// the cabinet board isn't reachable, so the demo still lights up mid-rewiring.
+export async function notifyScanDone(
+  deviceUrl: string,
+  compartment: number | null,
+): Promise<void> {
+  if (compartment == null) return; // cabinet full — nothing to flash
+  const unit = compartment - 1;
   for (const base of [...new Set(CABINET_URL_CANDIDATES)]) {
     try {
       const res = await fetch(`${base}/flash?unit=${unit}`, {
@@ -252,13 +266,25 @@ export async function intakeScan(fields: ScanFields): Promise<ScanIntakeResult> 
   };
 
   if (existing) {
+    // Rescan of a known bottle: keep its compartment (the flash guides the
+    // bottle back to its usual spot); give it one if it never had one.
+    const compartment = existing.compartment ?? (await nextFreeCompartment());
     const medication = await prisma.medication.update({
       where: { id: existing.id },
-      data: scannedValues,
+      data: {
+        ...scannedValues,
+        compartment,
+        compartmentSize: compartment != null ? sizeForCompartment(compartment) : null,
+        ...(compartment != null ? { status: "active", outOfCabinet: false } : {}),
+      },
     });
     return { medication, matched: Boolean(match), updatedExisting: true };
   }
 
+  // New bottle: claim the next free compartment (1..8, same one the cabinet
+  // lights flash). Goes straight to active — the bottle is physically placed
+  // as part of the scan flow. Cabinet full → saved unassigned for review.
+  const compartment = await nextFreeCompartment();
   const medication = await prisma.medication.create({
     data: {
       brandName,
@@ -266,8 +292,9 @@ export async function intakeScan(fields: ScanFields): Promise<ScanIntakeResult> 
       indications: match?.indications ?? "",
       purpose: match?.purpose ?? null,
       warnings: match?.warnings ?? null,
-      compartment: null, // pending assignment, per the hardware contract
-      status: "pending_review",
+      compartment,
+      compartmentSize: compartment != null ? sizeForCompartment(compartment) : null,
+      status: compartment != null ? "active" : "pending_review",
       ...scannedValues,
     },
   });

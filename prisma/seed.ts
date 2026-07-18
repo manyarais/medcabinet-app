@@ -1,5 +1,7 @@
-// Seeds 12 realistic medications across both cabinet modules, plus at least one
-// active prescription schedule covering today so /calendar has content.
+// Seeds 12 realistic medications — the first 8 fill cabinet compartments 1–8
+// (matching the light strips), the rest stay in the library unassigned — plus
+// at least one active prescription schedule covering today so /calendar has
+// content.
 
 import { PrismaClient } from "@prisma/client";
 import { sizeForCompartment } from "../src/lib/compartments";
@@ -133,7 +135,7 @@ const medications = [
     dosage:
       "Chew 2-4 tablets as symptoms occur. Do not take more than 10 tablets in a 24-hour period.",
     expirationDate: "2028-01",
-    compartment: 9,
+    compartment: null as number | null,
     status: "active",
   },
   {
@@ -148,7 +150,7 @@ const medications = [
     dosage:
       "Chew or dissolve in mouth: 2 tablets every 1/2 to 1 hour as needed. Do not exceed 8 doses (16 tablets) in 24 hours.",
     expirationDate: "2027-08",
-    compartment: 11,
+    compartment: null as number | null,
     status: "active",
   },
   {
@@ -163,7 +165,7 @@ const medications = [
     dosage:
       "As directed by your physician. Typical adult dose: 250–500 mg every 8 hours.",
     expirationDate: "2026-09",
-    compartment: 13,
+    compartment: null as number | null,
     status: "active",
   },
   {
@@ -177,7 +179,7 @@ const medications = [
       "When pregnancy is detected, discontinue lisinopril as soon as possible. Drugs that act directly on the renin-angiotensin system can cause injury and death to the developing fetus.",
     dosage: "As directed by your physician. Typical adult dose: 10 mg once daily.",
     expirationDate: "2027-05",
-    compartment: 15,
+    compartment: null as number | null,
     status: "active",
   },
 ];
@@ -192,7 +194,10 @@ async function main() {
     const row = await prisma.medication.create({
       data: {
         ...medication,
-        compartmentSize: sizeForCompartment(medication.compartment),
+        compartmentSize:
+          medication.compartment != null
+            ? sizeForCompartment(medication.compartment)
+            : null,
       },
     });
     created.push(row);

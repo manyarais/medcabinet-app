@@ -103,7 +103,6 @@ export function notifyDueDoses(date: string, doses: NotifyDose[]): void {
       const notification = new Notification(title, {
         body: `${formatDoseTimeDisplay(dose.scheduledTime)} · ${dose.brandName} (reminder only)`,
         tag: key,
-        renotify: false,
       });
       notification.onclick = () => {
         window.focus();

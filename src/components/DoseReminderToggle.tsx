@@ -13,22 +13,21 @@ import { useEffect, useState } from "react";
 
 type Status = "loading" | "unsupported" | "off" | "on" | "denied";
 
+function readStatus(): Exclude<Status, "loading"> {
+  const permission = getNotificationPermission();
+  if (permission === "unsupported") return "unsupported";
+  if (permission === "denied") return "denied";
+  return getReminderPreference() && permission === "granted" ? "on" : "off";
+}
+
 export function DoseReminderToggle() {
   const [status, setStatus] = useState<Status>("loading");
   const [busy, setBusy] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
 
   useEffect(() => {
-    const permission = getNotificationPermission();
-    if (permission === "unsupported") {
-      setStatus("unsupported");
-      return;
-    }
-    if (permission === "denied") {
-      setStatus("denied");
-      return;
-    }
-    setStatus(getReminderPreference() && permission === "granted" ? "on" : "off");
+    const boot = window.setTimeout(() => setStatus(readStatus()), 0);
+    return () => window.clearTimeout(boot);
   }, []);
 
   async function handleEnable() {

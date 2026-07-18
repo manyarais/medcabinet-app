@@ -57,7 +57,8 @@ export function SymptomSearch() {
   }
 
   useEffect(() => {
-    void loadRecent();
+    const boot = window.setTimeout(() => void loadRecent(), 0);
+    return () => window.clearTimeout(boot);
   }, []);
 
   async function runSearch(symptom: string, options?: { preserveTakeMessage?: boolean }) {

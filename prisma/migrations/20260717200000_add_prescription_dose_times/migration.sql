@@ -1,2 +1,2 @@
--- Timed dose slots for each prescription schedule (JSON array of "HH:MM").
-ALTER TABLE "Prescription" ADD COLUMN "doseTimes" TEXT NOT NULL DEFAULT '[]';
+-- Squashed into 20260714231949_init_medication after SQLite → PostgreSQL switch.
+SELECT 1;

@@ -91,11 +91,13 @@ export function DueDosesBanner() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    // Defer so the effect only subscribes; fetch/setState runs outside the sync body.
+    const boot = window.setTimeout(() => void refresh(), 0);
     const id = window.setInterval(() => void refresh(), POLL_MS);
     const onFocus = () => void refresh();
     window.addEventListener("focus", onFocus);
     return () => {
+      window.clearTimeout(boot);
       window.clearInterval(id);
       window.removeEventListener("focus", onFocus);
     };

@@ -1,6 +1,6 @@
 // Singleton Prisma client for the app.
 // Next.js hot-reload can create many clients in dev without this guard,
-// which exhausts SQLite connections.
+// which exhausts database connections.
 // bump: recreate client after schema changes (ReminderSettings / CallLog)
 
 import { PrismaClient } from "@prisma/client";

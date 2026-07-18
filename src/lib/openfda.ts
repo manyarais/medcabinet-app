@@ -25,6 +25,10 @@ type OpenFdaResponse = {
  * Search openFDA labels by brand OR generic name.
  * Note: the PRD snippet used "+", which is AND in openFDA/Lucene and would
  * miss brand-only hits like Tylenol. We use OR so brand-or-generic works.
+ *
+ * Also includes a brand prefix wildcard (advil*) so sibling products like
+ * "Advil PM" appear — exact quoted brand alone only returns that exact string.
+ * (Scanner teammates: search string is additive; return type unchanged.)
  */
 export async function searchOpenFda(
   name: string,
@@ -32,8 +36,22 @@ export async function searchOpenFda(
 ): Promise<DrugResult[]> {
   const limit = options?.limit ?? 10;
   const escaped = escapeOpenFdaValue(name);
+  const prefixToken = name
+    .trim()
+    .split(/\s+/)[0]
+    ?.replace(/[^a-zA-Z0-9]/g, "")
+    .toLowerCase();
 
-  const search = `(openfda.brand_name:"${escaped}" OR openfda.generic_name:"${escaped}")`;
+  const clauses = [
+    `openfda.brand_name:"${escaped}"`,
+    `openfda.generic_name:"${escaped}"`,
+  ];
+  // Prefix only for tokens long enough to avoid ultra-broad matches.
+  if (prefixToken && prefixToken.length >= 3) {
+    clauses.push(`openfda.brand_name:${prefixToken}*`);
+  }
+
+  const search = `(${clauses.join(" OR ")})`;
 
   const url = new URL("https://api.fda.gov/drug/label.json");
   url.searchParams.set("search", search);

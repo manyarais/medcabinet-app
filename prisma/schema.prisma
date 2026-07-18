@@ -1,5 +1,4 @@
 // Prisma schema for MedCabinet.
-// Prescription stays Phase 5.
 
 generator client {
   provider = "prisma-client-js"
@@ -20,19 +19,59 @@ model Medication {
   warnings        String?
   dosage          String?
   expirationDate  String?
-  compartment     Int? // 1–18; null while pending; never the scanner bay (18) when active
+  compartment     Int? // 1–18; null while pending
   compartmentSize String? // "medium" | "thin" | "big" — auto-filled from compartment config
+  outOfCabinet    Boolean    @default(false)
   status          String     @default("active") // "active" | "pending_review"
   addedAt         DateTime   @default(now())
   rawLabelText    String? // OCR dump from hardware scans (Phase 4)
   personName      String? // whose library this belongs to (from the PATIENT line on prescription labels); null = household
   usageLogs       UsageLog[]
+  prescriptions   Prescription[]
 }
 
 model UsageLog {
   id           Int        @id @default(autoincrement())
+  medicationId Int?
+  medication   Medication? @relation(fields: [medicationId], references: [id], onDelete: SetNull)
+  symptom      String? // what the user searched when they took it; null for scheduled Rx doses
+  takenAt      DateTime   @default(now())
+}
+
+model Prescription {
+  id           Int        @id @default(autoincrement())
   medicationId Int
   medication   Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
-  symptom      String? // what the user searched when they took it
-  takenAt      DateTime   @default(now())
+  dosesPerDay  Int
+  pillsPerDose Int
+  /// JSON array of local "HH:MM" times, length must equal dosesPerDay (e.g. ["08:00","20:00"]).
+  doseTimes    String     @default("[]")
+  startDate    String // YYYY-MM-DD (required — prescriptions are finite)
+  endDate      String // YYYY-MM-DD (required — prescriptions are finite)
+}
+
+/// Singleton row (id = 1) for phone-call reminder preferences.
+model ReminderSettings {
+  id                      Int     @id @default(1)
+  /// When true, /api/reminders/dispatch may place Twilio calls (app can be closed).
+  serverAutoCall          Boolean @default(false)
+  /// Spoken script; use {brandName} and {scheduledTime} placeholders.
+  callMessageTemplate     String  @default("Hello from Pillio. This is a reminder that {brandName} is due at {scheduledTime}. Please check your Pillio calendar when you can. This is a reminder only, not medical advice. Goodbye.")
+  quietHoursEnabled       Boolean @default(false)
+  quietStart              String  @default("22:00") // HH:MM local
+  quietEnd                String  @default("07:00") // HH:MM local (may be next morning)
+  /// If true, overdue doses still trigger calls during quiet hours.
+  callOverdueDuringQuiet  Boolean @default(true)
+}
+
+/// Dedupes outbound reminder calls per dose slot per day.
+model ReminderCallLog {
+  id             Int      @id @default(autoincrement())
+  date           String // YYYY-MM-DD
+  medicationId   Int
+  absoluteIndex  Int
+  callSid        String?
+  createdAt      DateTime @default(now())
+
+  @@unique([date, medicationId, absoluteIndex])
 }

@@ -11,7 +11,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "db:setup": "prisma db push && prisma db seed"
+    "db:setup": "prisma db push && prisma db seed",
+    "reminders:watch": "node scripts/reminder-dispatch-watch.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",

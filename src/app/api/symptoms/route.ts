@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
         brandName: med.brandName,
         productType: med.productType,
         compartment: med.compartment,
+        outOfCabinet: med.outOfCabinet,
         matchExcerpt: excerpt,
       };
     })
@@ -54,9 +55,9 @@ export async function GET(request: NextRequest) {
     .map((log) => ({
       id: log.id,
       medicationId: log.medicationId,
-      brandName: log.medication.brandName,
-      compartment: log.medication.compartment,
-      productType: log.medication.productType,
+      brandName: log.medication?.brandName ?? "Removed medication",
+      compartment: log.medication?.compartment ?? null,
+      productType: log.medication?.productType ?? "UNKNOWN",
       symptom: log.symptom,
       takenAt: log.takenAt.toISOString(),
     }));

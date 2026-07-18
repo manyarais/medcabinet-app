@@ -1,8 +1,10 @@
 // Medication detail page (Phase 1 + Phase 2 cabinet actions).
 // URL slug is the brand name; we re-run the lookup and show label fields.
-// If already in the cabinet: Edit / Remove. Otherwise: Add to cabinet.
+// ?from=catalog → product + Add emphasis (manual fallback when scanning isn't possible).
+// Cabinet / default → personal medication actions when owned.
 
 import { AddToCabinetForm } from "@/components/AddToCabinetForm";
+import { AddPrescriptionForm } from "@/components/AddPrescriptionForm";
 import { CabinetMedicationActions } from "@/components/CabinetMedicationActions";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { prisma } from "@/lib/db";
@@ -13,10 +15,13 @@ import { notFound } from "next/navigation";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ from?: string }>;
 };
 
-export default async function DrugDetailPage({ params }: PageProps) {
+export default async function DrugDetailPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const { from } = await searchParams;
+  const fromCatalog = from === "catalog";
   const brandFromSlug = decodeURIComponent(slug).trim();
 
   if (!brandFromSlug) {
@@ -38,14 +43,16 @@ export default async function DrugDetailPage({ params }: PageProps) {
     lookupError = error instanceof Error ? error.message : "Lookup failed";
   }
 
-  const cabinetMedications = await prisma.medication.findMany();
+  const cabinetMedications = await prisma.medication.findMany({
+    where: { status: "active" },
+    include: { prescriptions: { orderBy: { startDate: "asc" } } },
+  });
   const cabinetMatch =
-    cabinetMedications.find((med) => namesMatch(brandFromSlug, med.brandName)) ??
-    cabinetMedications.find(
-      (med) => med.genericName != null && namesMatch(brandFromSlug, med.genericName),
-    ) ??
+    cabinetMedications.find((med) => brandsEqual(brandFromSlug, med.brandName)) ??
     null;
 
+  // Prefer the openFDA product for catalog taps; never inherit ownership from a
+  // fuzzy cousin (e.g. "Tylenol Extra Strength" must not match cabinet "Tylenol").
   const occupied = cabinetMedications
     .filter((med) => med.compartment != null)
     .map((med) => ({
@@ -74,6 +81,9 @@ export default async function DrugDetailPage({ params }: PageProps) {
         }
       : null);
 
+  // Catalog taps want product + add first; owned meds always use personal actions.
+  const showCatalogAddFirst = fromCatalog && !cabinetMatch && displayDrug != null;
+
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-8">
       <Link href="/" className="mb-6 text-sm font-medium text-[var(--brand-sage-deep)] hover:underline">
@@ -100,7 +110,12 @@ export default async function DrugDetailPage({ params }: PageProps) {
           <header className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <ProductTypeBadge productType={displayDrug.productType} />
-              {cabinetMatch && <CabinetBadge compartment={cabinetMatch.compartment} />}
+              {cabinetMatch && (
+                <CabinetBadge
+                  compartment={cabinetMatch.compartment}
+                  outOfCabinet={cabinetMatch.outOfCabinet}
+                />
+              )}
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
               {displayDrug.brandName}
@@ -108,6 +123,11 @@ export default async function DrugDetailPage({ params }: PageProps) {
             <p className="text-base text-zinc-600">
               {displayDrug.genericName ?? "Generic name unavailable"}
             </p>
+            {fromCatalog && !cabinetMatch && (
+              <p className="text-xs text-zinc-500">
+                Product label from openFDA. Prefer scanning the bottle when you have it.
+              </p>
+            )}
             {!drug && cabinetMatch && (
               <p className="text-xs text-zinc-500">
                 Showing saved cabinet data (live label lookup had no match).
@@ -115,10 +135,34 @@ export default async function DrugDetailPage({ params }: PageProps) {
             )}
           </header>
 
+          {showCatalogAddFirst && (
+            <div className="rounded-lg border-2 border-zinc-900 bg-white p-1">
+              <AddToCabinetForm drug={displayDrug} occupied={occupied} />
+            </div>
+          )}
+
           {cabinetMatch ? (
-            <CabinetMedicationActions medication={cabinetMatch} occupied={occupied} />
+            <>
+              <CabinetMedicationActions medication={cabinetMatch} occupied={occupied} />
+              {cabinetMatch.productType === "PRESCRIPTION" && (
+                <AddPrescriptionForm
+                  medicationId={cabinetMatch.id}
+                  brandName={cabinetMatch.brandName}
+                  schedules={cabinetMatch.prescriptions.map((rx) => ({
+                    id: rx.id,
+                    dosesPerDay: rx.dosesPerDay,
+                    pillsPerDose: rx.pillsPerDose,
+                    doseTimes: rx.doseTimes,
+                    startDate: rx.startDate,
+                    endDate: rx.endDate,
+                  }))}
+                />
+              )}
+            </>
           ) : (
-            <AddToCabinetForm drug={displayDrug} occupied={occupied} />
+            !showCatalogAddFirst && (
+              <AddToCabinetForm drug={displayDrug} occupied={occupied} />
+            )
           )}
 
           <DetailSection title="Purpose" body={displayDrug.purpose} />
@@ -131,10 +175,18 @@ export default async function DrugDetailPage({ params }: PageProps) {
   );
 }
 
-function CabinetBadge({ compartment }: { compartment: number | null }) {
+function CabinetBadge({
+  compartment,
+  outOfCabinet,
+}: {
+  compartment: number | null;
+  outOfCabinet: boolean;
+}) {
   return (
-    <span className="inline-flex items-center rounded bg-zinc-900 px-2.5 py-1 text-xs font-semibold text-white">
-      In cabinet
+    <span
+      className={`inline-flex items-center rounded px-2.5 py-1 text-xs font-semibold text-white ${outOfCabinet ? "bg-amber-600" : "bg-zinc-900"}`}
+    >
+      {outOfCabinet ? "Out of cabinet" : "In cabinet"}
       {compartment != null ? ` — Compartment ${compartment}` : " — pending assignment"}
     </span>
   );
@@ -151,9 +203,8 @@ function DetailSection({ title, body }: { title: string; body: string | null }) 
   );
 }
 
-function namesMatch(a: string, b: string): boolean {
-  const left = a.trim().toLowerCase();
-  const right = b.trim().toLowerCase();
-  if (!left || !right) return false;
-  return left === right || left.includes(right) || right.includes(left);
+function brandsEqual(a: string, b: string): boolean {
+  const left = a.trim().toLowerCase().replace(/\s+/g, " ");
+  const right = b.trim().toLowerCase().replace(/\s+/g, " ");
+  return Boolean(left && right && left === right);
 }

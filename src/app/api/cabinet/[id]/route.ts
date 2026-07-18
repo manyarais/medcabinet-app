@@ -20,6 +20,7 @@ type PatchBody = {
   warnings?: string | null;
   indications?: string | null;
   productType?: string;
+  outOfCabinet?: boolean;
 };
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
@@ -52,6 +53,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     warnings?: string | null;
     indications?: string;
     productType?: string;
+    outOfCabinet?: boolean;
   } = {};
 
   if (body.brandName !== undefined) {
@@ -88,6 +90,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   if (body.productType !== undefined) {
     data.productType = body.productType.trim();
+  }
+
+  if (body.outOfCabinet !== undefined) {
+    data.outOfCabinet = Boolean(body.outOfCabinet);
   }
 
   if (body.compartment !== undefined) {

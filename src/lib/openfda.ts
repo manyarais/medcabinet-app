@@ -96,7 +96,8 @@ function mapLabelToDrugResult(
   };
 }
 
-function mapProductType(raw: string | null): ProductType {
+/** Exported for Tier 1 unit tests (openFDA fields are inconsistent). */
+export function mapProductType(raw: string | null): ProductType {
   if (!raw) return "UNKNOWN";
   const upper = raw.toUpperCase();
   if (upper.includes("OTC")) return "OTC";
@@ -104,12 +105,12 @@ function mapProductType(raw: string | null): ProductType {
   return "UNKNOWN";
 }
 
-function firstString(values: string[] | undefined): string | null {
+export function firstString(values: string[] | undefined): string | null {
   if (!values || values.length === 0) return null;
   return values[0] ?? null;
 }
 
-function joinField(values: string[] | undefined): string | null {
+export function joinField(values: string[] | undefined): string | null {
   if (!values || values.length === 0) return null;
   return values.join("\n\n");
 }

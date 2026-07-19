@@ -1,6 +1,6 @@
 "use client";
 
-// Symptom lookup UI (Phase 3): match OTC cabinet labels; log "Take this".
+// Symptom lookup UI (Phase 3): match OTC cabinet labels; log "I took this".
 
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { FormEvent, useEffect, useState } from "react";
@@ -194,7 +194,7 @@ export function SymptomSearch() {
                       disabled={takingId === match.medicationId}
                       className="mt-4 rounded border border-zinc-300 px-3 py-2 text-sm font-medium disabled:opacity-50"
                     >
-                      {takingId === match.medicationId ? "Logging…" : "Take this"}
+                      {takingId === match.medicationId ? "Logging…" : "I took this"}
                     </button>
                   </li>
                 ))}
@@ -216,11 +216,11 @@ export function SymptomSearch() {
       <section className="flex flex-col gap-3 border-t border-zinc-200 pt-6">
         <h2 className="text-lg font-semibold text-zinc-900">Recent symptom takes</h2>
         <p className="text-xs text-zinc-500">
-          Saved in your local database whenever you tap Take this (OTC only).
+          Saved in your local database whenever you tap I took this (OTC only).
         </p>
         {recent.length === 0 ? (
           <p className="rounded border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
-            No takes logged yet. Search a symptom and tap Take this.
+            No takes logged yet. Search a symptom and tap I took this.
           </p>
         ) : (
           <UsageList entries={recent} showSymptom />

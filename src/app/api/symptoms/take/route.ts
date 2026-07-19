@@ -1,4 +1,4 @@
-// POST /api/symptoms/take — create a UsageLog when the user taps "Take this".
+// POST /api/symptoms/take — create a UsageLog when the user taps "I took this".
 
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";

@@ -148,9 +148,8 @@ export function CallReminderPanel() {
         <div>
           <p className="text-sm font-medium text-zinc-900">Phone call reminders</p>
           <p className="text-xs text-zinc-500">
-            Twilio Voice. Reminder only — not medical advice. Run{" "}
-            <code className="font-mono text-[11px]">npm run reminders:watch</code> so calls
-            work with the browser closed.
+            Twilio Voice. Reminder only — not medical advice. Phone calls need server
+            auto-call enabled (see README for setup).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -175,8 +174,8 @@ export function CallReminderPanel() {
 
       {configured === false && (
         <p className="text-xs text-amber-800">
-          Twilio not configured. Add credentials to <code className="font-mono">.env</code>, then
-          restart <code className="font-mono">npm run dev</code>.
+          Phone calling is not configured on this server. Ask a teammate who manages
+          Twilio credentials, or see the README.
         </p>
       )}
 
@@ -192,8 +191,8 @@ export function CallReminderPanel() {
             <span>
               <span className="font-medium">Server auto-call for overdue doses</span>
               <span className="block text-zinc-500">
-                Works with the app closed when <code className="font-mono">reminders:watch</code>{" "}
-                is running.
+                Places reminder calls even when the browser is closed (server setup
+                required — see README).
               </span>
             </span>
           </label>

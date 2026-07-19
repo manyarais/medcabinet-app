@@ -44,7 +44,7 @@ Fill **Owner**, **Her note**, and adjust Showcase role as the team decides.
 | Seeded demo cabinet | `prisma/seed.ts` | Works | Core | | |
 | Prescription schedules | prescriptions + forms | Stretch | Optional | | |
 | Calendar dose checkoff | `/calendar` | Stretch | Optional | | |
-| Due-dose banner | `DueDosesBanner` | Stretch | Optional / Hide | | |
+| Due-dose banner | `DueDosesBanner` | Stretch / Hide | Optional / Hide | | Hidden from layout for demo freeze |
 | Browser dose notifications | settings toggle | Stretch | Hide unless stable | | |
 | Phone call reminders (Twilio) | settings + dispatch | Stretch | Hide unless rehearsed | | |
 | Settings screen | `/settings` | Stretch | Support / Hide | | |
@@ -83,11 +83,11 @@ You may reorder if your vision says reminders *are* the product — but decide t
 
 Before a practice or showcase, copy a freeze here:
 
-**Date:** __________  
-**On stage:** ______________________________________________  
-**Backstage:** ____________________________________________  
-**Known inputs:** _________________________________________  
-**Forbidden claims:** _____________________________________
+**Date:** 2026-07-19  
+**On stage:** Home search, Cabinet, Symptoms, Settings; Scanner card left as partner WIP / known dead-end  
+**Backstage:** Calendar (URL only), due-dose banner, browser notifications, Twilio call reminders  
+**Known inputs:** `Tylenol`, `Advil`, `headache`, `broken arm`  
+**Forbidden claims:** medical advice; Rx meds in symptom results; Scanner as finished hardware ingest  
 
 ---
 
@@ -97,8 +97,8 @@ Park ideas here so they don’t get lost — and don’t sneak into the build wi
 
 | Idea | Why it’s exciting | Risk | Decision (Now / After showcase / Never) |
 |------|-------------------|------|-----------------------------------------|
-| | | | |
-| | | | |
+| Order / buy when a searched med isn’t in the cabinet | Closes the loop when inventory is empty | Shopping + liability; keep OTC-only, user-picked products (not symptom→recommend) | After showcase |
+| Symptom → “meds that help” → order | Feels magical | High — reads as medical recommendation / FDA risk | Never for showcase; revisit only with legal + OTC catalog framing |
 | | | | |
 
 ### Prompts to fill the parking lot

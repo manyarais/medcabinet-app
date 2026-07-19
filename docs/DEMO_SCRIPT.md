@@ -29,7 +29,7 @@ Rehearse this until it’s boringly reliable:
 | 3 | Open detail | Label fields readable; in-cabinet state if seeded | Skip to cabinet |
 | 4 | Open **Cabinet** | Modules/compartments visible; Tylenol in a slot | Point at seed compartment #1 |
 | 5 | Open **Symptoms**, type `headache` | OTC matches from cabinet; **compartment # large** | Try `Advil` / `fever` if needed |
-| 6 | Tap **Take this** | Confirmation + appears in recent/history | Explain log intent; don’t panic |
+| 6 | Tap **I took this** | Confirmation + appears in recent/history | Explain log intent; don’t panic |
 | 7 | (Optional) Show empty state with `broken arm` | Intentional empty message | Proves you’re not faking matches |
 
 ### Known-good demo inputs
@@ -44,7 +44,7 @@ Rehearse this until it’s boringly reliable:
 ### On stage (default recommendation)
 - Search / detail
 - Cabinet grid + compartment story
-- Symptoms + Take this
+- Symptoms + I took this
 - Hardware story told honestly (“when the Pi scans / LED lights…”)
 
 ### Backstage unless rehearsed cold

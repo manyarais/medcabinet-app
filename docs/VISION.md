@@ -186,12 +186,12 @@ Use this table whenever you’re unsure. Recommendations are starters — you ch
 
 | Topic | PRD / current default | Recommendation | Her decision | Date |
 |-------|------------------------|----------------|--------------|------|
-| Public name | Pillio in UI, MedCabinet in PRD | Pick one; prefer Pillio if brand mark exists | | |
-| Hero journey | Symptom → compartment | Keep as centerpiece | | |
-| Home page job | Search hub + dashboard cards | Evolve toward brand + primary action; keep her personality | | |
-| Scanner in UI | Mentioned before `/api/scan` exists | Be honest: hide or “coming soon” until real | | |
-| Reminders/Twilio | Stretch / present in code | Optional pride feature; don’t let it steal the hero story | | |
-| Feeling/tone | Not specified | Calm, clear, trustworthy | | |
+| Public name | Pillio in UI, MedCabinet in PRD | Pick one; prefer Pillio if brand mark exists | Pillio for user-facing | 2026-07-19 |
+| Hero journey | Symptom → compartment | Keep as centerpiece | Keep | 2026-07-19 |
+| Home page job | Search hub + dashboard cards | Evolve toward brand + primary action; keep her personality | Defer UI redesign | 2026-07-19 |
+| Scanner in UI | Mentioned before `/api/scan` exists | Be honest: hide or “coming soon” until real | Keep card; partner-owned dead-end for now | 2026-07-19 |
+| Reminders/Twilio | Stretch / present in code | Optional pride feature; don’t let it steal the hero story | Settings stays in nav; due-dose banner backstage | 2026-07-19 |
+| Feeling/tone | Not specified | Calm, clear, trustworthy | Defer visual identity | 2026-07-19 |
 
 ---
 

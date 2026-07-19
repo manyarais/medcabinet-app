@@ -21,3 +21,19 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+@media print {
+  nav {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+}

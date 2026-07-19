@@ -2,7 +2,7 @@
 // POST /api/symptoms/take — log that the user took a medication for a symptom.
 
 import { prisma } from "@/lib/db";
-import { findMatchExcerpt } from "@/lib/symptoms";
+import { matchOtcCabinetMeds } from "@/lib/symptomMatch";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -19,26 +19,8 @@ export async function GET(request: NextRequest) {
     where: { status: "active" },
   });
 
-  // PRODUCT SAFETY CONSTRAINT (intentional):
-  // Never surface prescription medications in symptom search results —
-  // even if their FDA label text happens to mention the symptom.
-  // Symptom lookup is OTC-only for this prototype.
-  const otcOnly = cabinetMeds.filter((med) => med.productType === "OTC");
-
-  const matches = otcOnly
-    .map((med) => {
-      const excerpt = findMatchExcerpt(med.purpose, med.indications, symptom);
-      if (!excerpt) return null;
-      return {
-        medicationId: med.id,
-        brandName: med.brandName,
-        productType: med.productType,
-        compartment: med.compartment,
-        outOfCabinet: med.outOfCabinet,
-        matchExcerpt: excerpt,
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => item != null);
+  // PRODUCT SAFETY: OTC-only matches (see matchOtcCabinetMeds).
+  const matches = matchOtcCabinetMeds(cabinetMeds, symptom);
 
   const pastUsage = await prisma.usageLog.findMany({
     where: {

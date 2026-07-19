@@ -34,6 +34,17 @@ Companion web app for a smart medicine cabinet: search live FDA drug labels (via
 
    Open [http://localhost:3000](http://localhost:3000).
 
+## Phone call reminders (optional / stretch)
+
+Twilio call reminders stay off-stage for the main demo. To enable them locally:
+
+1. Add to `.env`: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `REMINDER_PHONE_NUMBER`.
+2. Start the app: `npm run dev`
+3. In another terminal: `npm run reminders:watch` (polls `/api/reminders/dispatch` so calls can fire with the browser closed).
+4. Open `/settings` directly (not in primary nav during demo freeze) to toggle auto-call and message text.
+
+Do not put npm scripts or `.env` paths in the in-app UI.
+
 ## Testing the scan endpoint
 
 The hardware scan endpoint (`POST /api/scan`) ships in **Phase 4** and is not available yet. Example curl for when it lands:
@@ -74,4 +85,4 @@ curl -X POST http://localhost:3000/api/scan \
 - Symptoms: [http://localhost:3000/symptoms](http://localhost:3000/symptoms)
 - `headache` → seeded OTC pain relievers (e.g. Tylenol, Advil); Amoxicillin must never appear.
 - `broken arm` → empty-state message only.
-- Tap **Take this** → row appears under “You've used before”.
+- Tap **I took this** → row appears under “You've used before”.

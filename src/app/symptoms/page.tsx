@@ -9,7 +9,7 @@ export default function SymptomsPage() {
         <h1 className="text-2xl font-semibold text-zinc-900">Symptoms</h1>
         <p className="mt-1 text-sm text-zinc-600">
           Shows OTC medications already in your cabinet whose labels mention what you type.
-          Tapping Take this saves a log in your database. This is not medical advice.
+          Tapping I took this saves a personal usage log. This is not medical advice.
         </p>
       </header>
       <SymptomSearch />

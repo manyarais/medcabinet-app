@@ -1,4 +1,4 @@
-// GET /api/symptoms/history — recent symptom "Take this" logs (symptom not null).
+// GET /api/symptoms/history — recent symptom "I took this" logs (symptom not null).
 
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";

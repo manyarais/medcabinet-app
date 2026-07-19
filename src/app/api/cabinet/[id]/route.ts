@@ -22,6 +22,12 @@ type PatchBody = {
   indications?: string | null;
   productType?: string;
   outOfCabinet?: boolean;
+  form?: string | null;
+  personName?: string | null;
+  prescriber?: string | null;
+  pharmacy?: string | null;
+  rxNumber?: string | null;
+  refills?: string | null;
 };
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
@@ -56,6 +62,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     productType?: string;
     outOfCabinet?: boolean;
     outSince?: Date | null;
+    form?: string | null;
+    personName?: string | null;
+    prescriber?: string | null;
+    pharmacy?: string | null;
+    rxNumber?: string | null;
+    refills?: string | null;
   } = {};
 
   if (body.brandName !== undefined) {
@@ -92,6 +104,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   if (body.productType !== undefined) {
     data.productType = body.productType.trim();
+  }
+
+  for (const field of [
+    "form",
+    "personName",
+    "prescriber",
+    "pharmacy",
+    "rxNumber",
+    "refills",
+  ] as const) {
+    if (body[field] !== undefined) {
+      data[field] = body[field]?.trim() || null;
+    }
   }
 
   if (body.outOfCabinet !== undefined) {

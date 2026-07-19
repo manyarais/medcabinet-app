@@ -18,7 +18,7 @@ export function DemoResetButton() {
       const res = await fetch("/api/demo/reset", { method: "POST" });
       setMessage(
         res.ok
-          ? "Reset — 4 demo medications in compartments 1–4, compartment 5 free for a live scan."
+          ? "Reset — cabinet is empty, all lights red. First scan will use compartment 1."
           : "Reset failed.",
       );
       router.refresh();
@@ -34,8 +34,8 @@ export function DemoResetButton() {
     <div className="rounded border border-zinc-200 bg-white p-4">
       <h2 className="text-sm font-semibold text-zinc-900">Demo reset</h2>
       <p className="mt-1 text-xs text-zinc-600">
-        Deletes ALL medications, schedules, and history, then loads the demo
-        starting state (4 meds in compartments 1–4).
+        Deletes ALL medications, schedules, and history, and resets every
+        cabinet light to red — a completely empty cabinet.
       </p>
       {!confirming ? (
         <button

@@ -1,12 +1,14 @@
-// POST /api/demo/reset — one-button reset to a clean demo state: wipes all
-// data and loads 4 realistic medications into compartments 1–4, leaving 5–8
-// free so a live scan lands in compartment 5 during the demo.
+// POST /api/demo/reset — one-button reset to the demo starting state: wipe
+// everything so the cabinet starts EMPTY (all strips red) and the first live
+// scan lands in compartment 1.
 
 import { logActivity } from "@/lib/activity";
+import { resetAllLights } from "@/lib/cabinetBoard";
 import { prisma } from "@/lib/db";
-import { sizeForCompartment } from "@/lib/compartments";
 import { NextResponse } from "next/server";
 
+/* Sample data kept in case a preloaded demo is ever wanted again — currently
+   unused: the demo starts with an EMPTY cabinet per the user's preference.
 const DEMO_MEDICATIONS = [
   {
     brandName: "Tylenol",
@@ -54,6 +56,7 @@ const DEMO_MEDICATIONS = [
     personName: "Marina Balzac",
   },
 ];
+*/
 
 export async function POST() {
   await prisma.reminderCallLog.deleteMany();
@@ -61,39 +64,8 @@ export async function POST() {
   await prisma.prescription.deleteMany();
   await prisma.activityEvent.deleteMany();
   await prisma.medication.deleteMany();
+  void resetAllLights();
 
-  for (const med of DEMO_MEDICATIONS) {
-    await prisma.medication.create({
-      data: {
-        ...med,
-        compartmentSize: sizeForCompartment(med.compartment),
-        status: "active",
-      },
-    });
-  }
-
-  // One active prescription so /calendar has content during the demo.
-  const amoxicillin = await prisma.medication.findFirst({
-    where: { brandName: "Amoxicillin" },
-  });
-  if (amoxicillin) {
-    const today = new Date();
-    const fmt = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const end = new Date(today);
-    end.setDate(end.getDate() + 9);
-    await prisma.prescription.create({
-      data: {
-        medicationId: amoxicillin.id,
-        dosesPerDay: 3,
-        pillsPerDose: 1,
-        doseTimes: JSON.stringify(["08:00", "14:00", "20:00"]),
-        startDate: fmt(today),
-        endDate: fmt(end),
-      },
-    });
-  }
-
-  void logActivity("demo_reset", { detail: `${DEMO_MEDICATIONS.length} demo medications loaded` });
-  return NextResponse.json({ ok: true, medications: DEMO_MEDICATIONS.length });
+  void logActivity("demo_reset", { detail: "wiped to empty cabinet" });
+  return NextResponse.json({ ok: true, medications: 0 });
 }

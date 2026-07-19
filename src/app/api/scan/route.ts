@@ -6,16 +6,22 @@
 // Deviation from the PRD: an unrecognized name is still SAVED (productType
 // UNKNOWN) rather than 404'd, so a bad lookup never loses a physical scan.
 
+import { logActivity } from "@/lib/activity";
+import { resetAllLights } from "@/lib/cabinetBoard";
 import { intakeScan } from "@/lib/scanner";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
-// DELETE /api/scan — clear the scan libraries. Only removes medications that
-// came from the scanner (rawLabelText set); cabinet-added ones are untouched.
+// DELETE /api/scan — the Clear button: wipe EVERYTHING (all medications,
+// schedules, history) and reset every cabinet strip back to red/empty, so the
+// app and the physical cabinet both start from a blank slate.
 export async function DELETE() {
-  const result = await prisma.medication.deleteMany({
-    where: { rawLabelText: { not: null } },
-  });
+  await prisma.reminderCallLog.deleteMany();
+  await prisma.usageLog.deleteMany();
+  await prisma.prescription.deleteMany();
+  const result = await prisma.medication.deleteMany();
+  void resetAllLights();
+  void logActivity("demo_reset", { detail: `cleared ${result.count} medications` });
   return NextResponse.json({ deleted: result.count });
 }
 

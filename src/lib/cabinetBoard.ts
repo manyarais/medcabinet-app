@@ -37,6 +37,13 @@ export async function flashCompartment(compartment: number): Promise<boolean> {
   return tryCabinet(`/flash?unit=${compartment - 1}`);
 }
 
+/** Reset every strip to solid red (empty) — used when the cabinet is cleared. */
+export async function resetAllLights(units = 8): Promise<void> {
+  for (let unit = 0; unit < units; unit++) {
+    await tryCabinet(`/off?unit=${unit}`, 2000);
+  }
+}
+
 /** Is the cabinet board reachable right now? */
 export async function probeCabinetBoard(timeoutMs = 2500): Promise<boolean> {
   for (const base of [...new Set(CABINET_URL_CANDIDATES)]) {

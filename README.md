@@ -49,6 +49,7 @@ curl -X POST http://localhost:3000/api/scan \
 | Area | Where it lives |
 |------|----------------|
 | PRD | `PRD.md` |
+| Product docs (vision, rules, prompts, audits) | `docs/` — start at `docs/README.md` |
 | Prisma schema + seed | `prisma/` |
 | RxNorm / openFDA helpers | `src/lib/rxnorm.ts`, `src/lib/openfda.ts`, `src/lib/drugs.ts` |
 | **Phase 1** — search API, home search, detail page | `src/app/api/drugs/search/`, `src/app/page.tsx`, `src/app/drugs/[slug]/` |

@@ -3,6 +3,9 @@
 Use this after practice runs.  
 Scores are a coach mirror — not a grade meant to shrink ambition.
 
+> A completed first pass lives in `EXPERIENCE_AUDIT_2026-07-19.md`
+> (CCO 4/10 · CXO 6.5/10 · CPO 7/10). Re-score here as you improve.
+
 **Scoring:** 0 = missing/broken · 1 = works but rough · 2 = proud/demo-ready  
 **Also mark:** ✨ Creative opportunity (even if score is already 2)
 

@@ -1,6 +1,7 @@
 // PATCH /api/cabinet/[id] — edit a stored medication (name, expiration, compartment, dosage, …).
 // DELETE /api/cabinet/[id] — remove from cabinet.
 
+import { logActivity } from "@/lib/activity";
 import {
   getOccupiedCompartments,
   validateAssignableCompartment,
@@ -54,6 +55,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     indications?: string;
     productType?: string;
     outOfCabinet?: boolean;
+    outSince?: Date | null;
   } = {};
 
   if (body.brandName !== undefined) {
@@ -94,6 +96,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   if (body.outOfCabinet !== undefined) {
     data.outOfCabinet = Boolean(body.outOfCabinet);
+    // Timestamp for "hasn't been returned" alerts.
+    data.outSince = data.outOfCabinet ? new Date() : null;
+    if (data.outOfCabinet !== existing.outOfCabinet) {
+      void logActivity(data.outOfCabinet ? "out" : "returned", {
+        medicationId: id,
+        compartment: existing.compartment,
+        detail: existing.brandName,
+      });
+    }
   }
 
   if (body.compartment !== undefined) {

@@ -7,7 +7,12 @@ const links = [
   { href: "/", label: "Search" },
   { href: "/cabinet", label: "Cabinet" },
   { href: "/symptoms", label: "Symptoms" },
+  { href: "/scan", label: "Scan" },
   { href: "/calendar", label: "Calendar" },
+  { href: "/alerts", label: "Alerts" },
+  { href: "/expiry", label: "Expiry" },
+  { href: "/travel", label: "Travel" },
+  { href: "/report", label: "Report" },
   { href: "/settings", label: "Settings" },
 ];
 

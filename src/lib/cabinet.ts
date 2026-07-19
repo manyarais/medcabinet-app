@@ -5,6 +5,7 @@ import {
   isScannerCompartment,
   isValidAssignableCompartment,
   sizeForCompartment,
+  TOTAL_COMPARTMENTS,
 } from "@/lib/compartments";
 import { prisma } from "@/lib/db";
 
@@ -54,7 +55,7 @@ export function validateAssignableCompartment(
     return {
       ok: false,
       status: 400,
-      error: `Compartment must be a valid slot from 1–18.`,
+      error: `Compartment must be a valid slot from 1–${TOTAL_COMPARTMENTS}.`,
     };
   }
 

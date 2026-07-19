@@ -12,8 +12,16 @@ const nextConfig: NextConfig = {
   // Allow the phone / Expo WebView to load /_next JS when opening via LAN IP.
   // Without this, Next.js 16 blocks those chunks (403) and client search never runs.
   // Entries are hostnames only (no scheme/port) — Next compares Origin hostname.
-  // Update this if your machine's IP changes (same host as pillio-mobile/App.js).
-  allowedDevOrigins: ["172.20.10.2", "10.103.31.167"],
+  // Update this if your machine's IP changes.
+  allowedDevOrigins: [
+    "172.20.10.2",
+    "172.20.10.3",
+    "172.20.10.4",
+    "172.20.10.5",
+    "172.20.10.6",
+    "10.103.31.167",
+    "10.103.35.203",
+  ],
 };
 
 export default nextConfig;

@@ -13,6 +13,8 @@ import { overlapsForMedication } from "@/lib/ingredients";
 import { parsePhotoPaths } from "@/lib/scanPhotos";
 import type { Medication } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 export default async function ScanPage() {
   // Everything that came from a scanner has a rawLabelText dump.
   const scanned = await prisma.medication.findMany({

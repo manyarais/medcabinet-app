@@ -23,6 +23,8 @@ They are based on `PRD.md`, then expanded with coaching questions and recommenda
 | 5 | `TECH_GUARDRAILS.md` | Keep builds demo-safe and teen-maintainable |
 | 6 | `PROMPT_PACK.md` | Copy-paste prompts that raise the bar |
 | 7 | `AUDIT_SCORECARD.md` | Product / tech / capability audits |
+| 8 | `EXPERIENCE_AUDIT_2026-07-19.md` | Completed CCO/CXO/CPO audit of the running app |
+| 9 | `EXPERIENCE_UPLIFT_PLAN.md` | Findings → concrete, prompt-ready specs to reach a 9–10 experience |
 
 ## Conflict guidance
 

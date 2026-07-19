@@ -69,27 +69,31 @@ export function TravelPacker({ meds }: { meds: TravelMed[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-7">
       <section>
-        <h2 className="text-lg font-semibold text-zinc-900">Pack for a trip</h2>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+          Pack for a trip
+        </h2>
         {inCabinet.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-500">Nothing available to pack.</p>
+          <p className="mt-3 rounded-2xl bg-[var(--accent-cream)] px-4 py-8 text-center text-sm text-[var(--text-secondary)]">
+            Nothing available to pack.
+          </p>
         ) : (
           <>
-            <ul className="mt-2 flex flex-col gap-1.5">
+            <ul className="mt-3 flex flex-col gap-2">
               {inCabinet.map((med) => (
                 <li key={med.id}>
-                  <label className="flex cursor-pointer items-center gap-2 rounded border border-zinc-200 bg-white px-3 py-2 text-sm">
+                  <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl bg-[var(--surface)] px-4 py-3 text-sm shadow-sm shadow-black/[0.04]">
                     <input
                       type="checkbox"
                       checked={selected.has(med.id)}
                       onChange={() => toggle(med.id)}
-                      className="h-4 w-4"
+                      className="h-4 w-4 accent-[var(--primary)]"
                     />
-                    <span className="font-medium text-zinc-900">{med.brandName}</span>
-                    <span className="text-xs text-zinc-500">
+                    <span className="font-semibold text-[var(--text-primary)]">{med.brandName}</span>
+                    <span className="text-xs text-[var(--text-secondary)]">
                       {med.personName ?? "Household"}
-                      {med.compartment != null && ` · compartment ${med.compartment}`}
+                      {med.compartment != null && ` · ${med.compartment}`}
                     </span>
                   </label>
                 </li>
@@ -98,30 +102,32 @@ export function TravelPacker({ meds }: { meds: TravelMed[] }) {
             <button
               onClick={() => send("pack", [...selected])}
               disabled={busy || selected.size === 0}
-              className="mt-3 rounded bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              className="mt-4 min-h-12 w-full rounded-2xl bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-[0.99] disabled:opacity-50"
             >
-              🧳 Pack {selected.size || ""} selected — blink their compartments
+              Pack {selected.size || ""} selected — blink bays
             </button>
           </>
         )}
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-zinc-900">Currently away</h2>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+          Currently away
+        </h2>
         {away.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-500">Nothing is marked away.</p>
+          <p className="mt-3 text-sm text-[var(--text-secondary)]">Nothing is marked away.</p>
         ) : (
           <>
-            <ul className="mt-2 flex flex-col gap-1.5">
+            <ul className="mt-3 flex flex-col gap-2">
               {away.map((med) => (
                 <li
                   key={med.id}
-                  className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm"
+                  className="rounded-2xl bg-[var(--warning-bg)] px-4 py-3 text-sm"
                 >
-                  <span className="font-medium text-zinc-900">{med.brandName}</span>{" "}
-                  <span className="text-xs text-zinc-600">
+                  <span className="font-semibold text-[var(--text-primary)]">{med.brandName}</span>{" "}
+                  <span className="text-xs text-[var(--warning-text)]">
                     {med.personName ?? "Household"}
-                    {med.compartment != null && ` · goes back in compartment ${med.compartment}`}
+                    {med.compartment != null && ` · back to ${med.compartment}`}
                   </span>
                 </li>
               ))}
@@ -129,16 +135,16 @@ export function TravelPacker({ meds }: { meds: TravelMed[] }) {
             <button
               onClick={() => send("return", away.map((m) => m.id))}
               disabled={busy}
-              className="mt-3 rounded border border-zinc-900 px-4 py-2.5 text-sm font-semibold text-zinc-900 disabled:opacity-50"
+              className="mt-4 min-h-12 w-full rounded-2xl bg-[var(--surface-tint)] px-4 text-sm font-semibold text-[var(--text-primary)] transition duration-150 active:scale-[0.99] disabled:opacity-50"
             >
-              ✓ Everything&apos;s back in the cabinet
+              Everything&apos;s back in the cabinet
             </button>
           </>
         )}
       </section>
 
       {message && (
-        <p className="text-sm text-zinc-800" role="status">
+        <p className="text-sm font-medium text-[var(--primary)]" role="status">
           {message}
         </p>
       )}

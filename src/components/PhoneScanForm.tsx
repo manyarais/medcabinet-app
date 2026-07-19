@@ -127,8 +127,8 @@ export function PhoneScanForm() {
   const nextHint = SHOT_HINTS[Math.min(photos.length, SHOT_HINTS.length - 1)];
 
   return (
-    <div className="mt-3 flex flex-col gap-3 rounded border border-zinc-200 bg-white p-4">
-      <p className="text-sm text-zinc-600">
+    <div className="mt-3 flex flex-col gap-3 rounded-2xl bg-[var(--surface)] p-4 shadow-sm shadow-black/[0.04]">
+      <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
         No hardware? Scan with this device&apos;s camera: take {TARGET_PHOTOS}{" "}
         photos, rotating the bottle between shots so every side of the label
         gets seen.
@@ -142,12 +142,12 @@ export function PhoneScanForm() {
               <img
                 src={photo}
                 alt={`Bottle photo ${index + 1}`}
-                className="h-16 w-16 rounded border border-zinc-300 object-cover"
+                className="h-16 w-16 rounded-xl object-cover"
               />
               <button
                 onClick={() => removePhoto(index)}
                 aria-label={`Remove photo ${index + 1}`}
-                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-xs text-white"
+                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--text-primary)] text-xs text-[var(--text-on-primary)]"
               >
                 ×
               </button>
@@ -170,16 +170,16 @@ export function PhoneScanForm() {
           <button
             onClick={() => inputRef.current?.click()}
             disabled={isReading}
-            className="flex-1 rounded border border-zinc-900 px-4 py-3 text-base font-semibold text-zinc-900 disabled:opacity-50"
+            className="min-h-12 flex-1 rounded-2xl bg-[var(--surface-tint)] px-4 text-base font-semibold text-[var(--text-primary)] transition duration-150 active:scale-[0.99] disabled:opacity-50"
           >
-            📱 Photo {photos.length + 1}: {nextHint}
+            Photo {photos.length + 1}: {nextHint}
           </button>
         )}
         {photos.length > 0 && (
           <button
             onClick={handleSubmit}
             disabled={isReading}
-            className="flex-1 rounded bg-zinc-900 px-4 py-3 text-base font-semibold text-white disabled:opacity-50"
+            className="min-h-12 flex-1 rounded-2xl bg-[var(--primary)] px-4 text-base font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-[0.99] disabled:opacity-50"
           >
             {isReading
               ? "Reading label…"
@@ -190,7 +190,7 @@ export function PhoneScanForm() {
 
       {message && (
         <p
-          className={`text-sm ${isError ? "text-red-700" : "text-zinc-800"}`}
+          className={`text-sm ${isError ? "text-[var(--danger-text)]" : "text-[var(--text-primary)]"}`}
           role="status"
         >
           {message}

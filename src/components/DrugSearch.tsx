@@ -35,7 +35,7 @@ type FdaSearchResponse = {
   error?: string;
 };
 
-export function DrugSearch() {
+export function DrugSearch({ variant = "default" }: { variant?: "default" | "pill" }) {
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [cabinetResults, setCabinetResults] = useState<CabinetHit[] | null>(null);
@@ -134,26 +134,40 @@ export function DrugSearch() {
   return (
     <div className="flex w-full flex-col gap-6">
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <label htmlFor="drug-search" className="text-sm font-medium text-zinc-700">
-          Search medications
-        </label>
-        <div className="flex gap-2">
+        {variant === "pill" ? (
+          <label htmlFor="drug-search" className="sr-only">
+            Search medications
+          </label>
+        ) : (
+          <label htmlFor="drug-search" className="text-sm font-medium text-zinc-700">
+            Search medications
+          </label>
+        )}
+        <div className={variant === "pill" ? "flex gap-2" : "flex gap-2"}>
           <input
             id="drug-search"
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="e.g. Tylenol, Advil, Tylenl"
-            className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-base text-zinc-900 outline-none ring-[var(--brand-sage-deep)] focus:ring-2"
+            placeholder="Search medicines…"
+            className={
+              variant === "pill"
+                ? "min-h-12 min-w-0 flex-1 rounded-full border-0 bg-[var(--surface-tint)] px-5 text-base text-[var(--text-primary)] outline-none ring-0 transition duration-150 placeholder:text-[var(--text-secondary)] focus:bg-[var(--surface)] focus:ring-2 focus:ring-[var(--primary)]/25"
+                : "min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-base text-[var(--text-primary)] outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+            }
             autoComplete="off"
             enterKeyHint="search"
           />
           <button
             type="submit"
             disabled={cabinetLoading || fdaLoading || !query.trim()}
-            className="shrink-0 rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-900/50"
+            className={
+              variant === "pill"
+                ? "inline-flex min-h-12 min-w-12 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-95 disabled:opacity-50"
+                : "shrink-0 rounded-lg bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-[var(--text-on-primary)] disabled:opacity-50"
+            }
           >
-            {cabinetLoading || fdaLoading ? "Searching…" : "Search"}
+            {cabinetLoading || fdaLoading ? "…" : variant === "pill" ? "Go" : "Search"}
           </button>
         </div>
       </form>

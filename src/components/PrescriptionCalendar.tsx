@@ -63,12 +63,12 @@ type Props = {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const EVENT_COLORS = [
-  { chip: "bg-[#1a73e8] text-white", dot: "bg-[#1a73e8]" },
-  { chip: "bg-[#0b8043] text-white", dot: "bg-[#0b8043]" },
-  { chip: "bg-[#8e24aa] text-white", dot: "bg-[#8e24aa]" },
-  { chip: "bg-[#e67c73] text-white", dot: "bg-[#e67c73]" },
-  { chip: "bg-[#f6bf26] text-zinc-900", dot: "bg-[#f6bf26]" },
-  { chip: "bg-[#039be5] text-white", dot: "bg-[#039be5]" },
+  { chip: "bg-[var(--primary)] text-[var(--text-on-primary)]", dot: "bg-[var(--primary)]" },
+  { chip: "bg-[var(--rx)] text-[var(--text-on-primary)]", dot: "bg-[var(--rx)]" },
+  { chip: "bg-[var(--warning)] text-[var(--text-on-primary)]", dot: "bg-[var(--warning)]" },
+  { chip: "bg-[var(--otc-text)] text-[var(--text-on-primary)]", dot: "bg-[var(--otc-text)]" },
+  { chip: "bg-[var(--brand-tint)] text-[var(--otc-text)]", dot: "bg-[var(--brand-tint)]" },
+  { chip: "bg-[var(--rx-bg)] text-[var(--rx-text)]", dot: "bg-[var(--rx)]" },
 ];
 
 function colorsForMed(medicationId: number) {
@@ -271,14 +271,14 @@ export function PrescriptionCalendar({ initialDate }: Props) {
   const selectedSummary = monthData?.days[selectedDate];
 
   return (
-    <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-      <section className="min-w-0 flex-1 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3">
-          <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+      <section className="min-w-0 flex-1 overflow-hidden rounded-2xl bg-[var(--surface)] shadow-sm shadow-black/[0.04]">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-3 py-3">
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => goMonth(-1)}
-              className="rounded-full px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-lg font-medium text-[var(--text-primary)] transition duration-150 active:bg-[var(--surface-tint)]"
               aria-label="Previous month"
             >
               ‹
@@ -286,42 +286,42 @@ export function PrescriptionCalendar({ initialDate }: Props) {
             <button
               type="button"
               onClick={() => goMonth(1)}
-              className="rounded-full px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-lg font-medium text-[var(--text-primary)] transition duration-150 active:bg-[var(--surface-tint)]"
               aria-label="Next month"
             >
               ›
             </button>
-            <h2 className="ml-1 text-xl font-semibold tracking-tight text-zinc-900">
+            <h2 className="ml-1 text-lg font-semibold tracking-tight text-[var(--text-primary)]">
               {formatMonthTitle(year, monthIndex)}
             </h2>
           </div>
           <button
             type="button"
             onClick={() => selectDate(today)}
-            className="rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+            className="rounded-full bg-[var(--brand-tint)] px-3 py-2 text-xs font-semibold text-[var(--primary)] transition duration-150 active:scale-95"
           >
             Today
           </button>
         </div>
 
-        <div className="grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
+        <div className="grid grid-cols-7 border-b border-[var(--border)] bg-[var(--surface-tint)]">
           {WEEKDAYS.map((label) => (
             <div
               key={label}
-              className="px-1 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500"
+              className="px-1 py-2 text-center text-[10px] font-bold uppercase tracking-wide text-[var(--text-secondary)]"
             >
               {label}
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 auto-rows-[minmax(5.5rem,1fr)]">
+        <div className="grid grid-cols-7 auto-rows-[minmax(4.75rem,1fr)]">
           {grid.map((date, index) => {
             if (!date) {
               return (
                 <div
                   key={`pad-${index}`}
-                  className="min-h-[5.5rem] border-b border-r border-zinc-100 bg-zinc-50/60"
+                  className="min-h-[4.75rem] border-b border-r border-[var(--border)] bg-[var(--accent-cream)]/40"
                 />
               );
             }
@@ -336,17 +336,17 @@ export function PrescriptionCalendar({ initialDate }: Props) {
                 key={date}
                 type="button"
                 onClick={() => selectDate(date)}
-                className={`flex min-h-[5.5rem] flex-col gap-1 border-b border-r border-zinc-100 px-1.5 py-1.5 text-left transition-colors hover:bg-[#e8f0fe]/50 ${
-                  isSelected ? "bg-[#e8f0fe]" : "bg-white"
+                className={`flex min-h-[4.75rem] flex-col gap-1 border-b border-r border-[var(--border)] px-1 py-1.5 text-left transition duration-150 active:bg-[var(--brand-tint)]/50 ${
+                  isSelected ? "bg-[var(--brand-tint)]/60" : "bg-[var(--surface)]"
                 }`}
               >
                 <span
-                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium ${
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold ${
                     isToday
-                      ? "bg-[#1a73e8] text-white"
+                      ? "bg-[var(--primary)] text-[var(--text-on-primary)]"
                       : isSelected
-                        ? "bg-[#d2e3fc] text-[#174ea6]"
-                        : "text-zinc-800"
+                        ? "bg-[var(--primary)]/15 text-[var(--primary)]"
+                        : "text-[var(--text-primary)]"
                   }`}
                 >
                   {Number(date.slice(-2))}
@@ -366,7 +366,7 @@ export function PrescriptionCalendar({ initialDate }: Props) {
                         </span>
                       ))}
                       {events.length > 3 && (
-                        <span className="px-1 text-[10px] font-medium text-zinc-500">
+                        <span className="px-1 text-[10px] font-medium text-[var(--text-secondary)]">
                           +{events.length - 3} more
                         </span>
                       )}
@@ -379,16 +379,16 @@ export function PrescriptionCalendar({ initialDate }: Props) {
         </div>
       </section>
 
-      <aside className="w-full shrink-0 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm lg:w-80">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <aside className="w-full shrink-0 rounded-2xl bg-[var(--surface)] p-4 shadow-sm shadow-black/[0.04] lg:w-80">
+        <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
           {dayData?.isToday ? "Today" : dayData?.isPast ? "Past day" : "Upcoming"}
         </p>
-        <h3 className="mt-1 text-lg font-semibold text-zinc-900">
+        <h3 className="mt-1 text-lg font-semibold tracking-tight text-[var(--text-primary)]">
           {formatDisplayDate(selectedDate)}
         </h3>
 
         {readOnly && (
-          <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+          <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
             {dayData?.isPast
               ? "Read-only log for this day."
               : "Reminder only — check off doses on the day they are due."}
@@ -397,17 +397,19 @@ export function PrescriptionCalendar({ initialDate }: Props) {
 
         {error && (
           <p
-            className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            className="mt-3 rounded-2xl bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger-text)]"
             role="alert"
           >
             {error}
           </p>
         )}
 
-        {dayLoading && <p className="mt-4 text-sm text-zinc-500">Loading…</p>}
+        {dayLoading && (
+          <p className="mt-4 text-sm text-[var(--text-secondary)]">Loading…</p>
+        )}
 
         {!dayLoading && dayData && dayData.doses.length === 0 && (
-          <p className="mt-4 rounded-lg bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
+          <p className="mt-4 rounded-2xl bg-[var(--accent-cream)] px-3 py-6 text-center text-sm text-[var(--text-secondary)]">
             No prescription doses on this day.
           </p>
         )}
@@ -422,7 +424,7 @@ export function PrescriptionCalendar({ initialDate }: Props) {
               return (
                 <li
                   key={key}
-                  className="flex items-start gap-3 rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-3"
+                  className="flex items-start gap-3 rounded-2xl bg-[var(--surface-tint)] px-3 py-3"
                 >
                   <span
                     className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${colorsForMed(dose.medicationId).dot}`}
@@ -439,25 +441,25 @@ export function PrescriptionCalendar({ initialDate }: Props) {
                         void handleTake(dose);
                       }
                     }}
-                    className="mt-0.5 h-4 w-4"
+                    className="mt-0.5 h-4 w-4 accent-[var(--primary)]"
                     aria-label={`${formatDoseTimeDisplay(dose.scheduledTime)} dose of ${dose.brandName}${canUntake ? " (uncheck to undo)" : ""}`}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline gap-x-2">
-                      <span className="text-sm font-semibold tabular-nums text-zinc-800">
+                      <span className="text-sm font-semibold tabular-nums text-[var(--text-primary)]">
                         {formatDoseTimeDisplay(dose.scheduledTime)}
                       </span>
                       <Link
                         href={`/drugs/${encodeURIComponent(dose.brandName)}`}
-                        className="font-semibold text-zinc-900 hover:underline"
+                        className="font-semibold text-[var(--text-primary)]"
                       >
                         {dose.brandName}
                       </Link>
                     </div>
-                    <p className="text-xs text-zinc-600">
+                    <p className="text-xs text-[var(--text-secondary)]">
                       Dose {dose.doseIndex}/{dose.dosesPerDay} · {dose.pillsPerDose}{" "}
                       pill{dose.pillsPerDose === 1 ? "" : "s"}
-                      {dose.compartment != null ? ` · #${dose.compartment}` : ""}
+                      {dose.compartment != null ? ` · ${dose.compartment}` : ""}
                       {canUntake ? " · tap to undo" : ""}
                     </p>
                   </div>
@@ -468,7 +470,7 @@ export function PrescriptionCalendar({ initialDate }: Props) {
         )}
 
         {selectedSummary && selectedSummary.totalDoses > 0 && (
-          <p className="mt-4 text-xs text-zinc-500">
+          <p className="mt-4 text-xs text-[var(--text-secondary)]">
             {selectedSummary.takenDoses}/{selectedSummary.totalDoses} doses logged
           </p>
         )}

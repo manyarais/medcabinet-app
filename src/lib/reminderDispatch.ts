@@ -28,6 +28,7 @@ export async function listOverdueDosesToday(now = new Date()): Promise<OverdueDo
     (rx) =>
       rx.medication.status === "active" &&
       rx.medication.productType === "PRESCRIPTION" &&
+      rx.medication.compartment != null &&
       isDateInInclusiveRange(date, rx.startDate, rx.endDate),
   );
 

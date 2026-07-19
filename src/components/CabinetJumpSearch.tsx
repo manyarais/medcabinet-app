@@ -65,17 +65,19 @@ export function CabinetJumpSearch({ medications }: Props) {
             // Allow click on a result before closing.
             window.setTimeout(() => setIsOpen(false), 150);
           }}
-          placeholder="Find a med in your cabinet…"
-          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-[var(--brand-sage-deep)] placeholder:text-zinc-400 focus:ring-2"
+          placeholder="Find a med…"
+          className="min-h-11 w-full rounded-full border-0 bg-[var(--surface-tint)] px-5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] focus:bg-[var(--surface)] focus:ring-2 focus:ring-[var(--primary)]/25"
           autoComplete="off"
           enterKeyHint="go"
         />
       </form>
 
       {isOpen && query.trim() && (
-        <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-md">
+        <ul className="absolute z-10 mt-2 max-h-64 w-full overflow-auto rounded-2xl bg-[var(--surface)] py-1 shadow-lg shadow-black/10">
           {matches.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-zinc-500">No match in your cabinet.</li>
+            <li className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+              No match in your cabinet.
+            </li>
           ) : (
             matches.map((med) => (
               <li key={med.id}>
@@ -83,18 +85,18 @@ export function CabinetJumpSearch({ medications }: Props) {
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => goToMed(med.brandName)}
-                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--brand-sage)]/40"
+                  className="flex min-h-11 w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm transition duration-150 active:bg-[var(--surface-tint)]"
                 >
-                  <span className="min-w-0 truncate font-medium text-zinc-900">
+                  <span className="min-w-0 truncate font-semibold text-[var(--text-primary)]">
                     {med.brandName}
                     {med.outOfCabinet && (
-                      <span className="ml-2 rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">
+                      <span className="ml-2 rounded-full bg-[var(--warning-bg)] px-2 py-0.5 text-[10px] font-bold uppercase text-[var(--warning-text)]">
                         Out
                       </span>
                     )}
                   </span>
-                  <span className="shrink-0 text-xs text-zinc-500">
-                    {med.compartment != null ? `#${med.compartment}` : "—"}
+                  <span className="shrink-0 text-xs font-medium text-[var(--text-secondary)]">
+                    {med.compartment != null ? med.compartment : "—"}
                   </span>
                 </button>
               </li>

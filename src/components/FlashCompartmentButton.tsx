@@ -1,13 +1,12 @@
 "use client";
 
-// "Find it" — blinks the physical compartment strip until its switch is
-// pressed. Used on cabinet cells and anywhere a medication is located.
+// "Find it" — blinks the physical compartment strip until its switch is pressed.
 
 import { useState } from "react";
 
 export function FlashCompartmentButton({
   compartment,
-  label = "💡 Find it",
+  label = "Find",
 }: {
   compartment: number;
   label?: string;
@@ -29,20 +28,24 @@ export function FlashCompartmentButton({
     setTimeout(() => setState("idle"), 4000);
   }
 
+  const text =
+    state === "busy"
+      ? "…"
+      : state === "ok"
+        ? "Lit"
+        : state === "fail"
+          ? "Offline"
+          : label;
+
   return (
     <button
+      type="button"
       onClick={flash}
       disabled={state === "busy"}
-      className="rounded border border-sky-300 bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-800 disabled:opacity-50"
+      className="inline-flex min-h-8 flex-1 items-center justify-center rounded-full bg-[var(--surface-tint)] px-2.5 text-[11px] font-semibold text-[var(--primary)] transition duration-150 active:scale-95 disabled:opacity-50"
       title="Blink this compartment's light on the cabinet"
     >
-      {state === "busy"
-        ? "…"
-        : state === "ok"
-          ? "Blinking!"
-          : state === "fail"
-            ? "Cabinet offline"
-            : label}
+      {text}
     </button>
   );
 }

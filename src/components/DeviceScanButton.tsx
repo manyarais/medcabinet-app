@@ -81,21 +81,21 @@ export function DeviceScanButton() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded border border-zinc-200 bg-white p-4">
-      <p className="text-sm text-zinc-600">
+    <div className="flex flex-col gap-3 rounded-2xl bg-[var(--surface)] p-4 shadow-sm shadow-black/[0.04]">
+      <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
         Put the bottle on the scanner turntable with the label facing the
         camera, then start the scan. It takes about 45 seconds.
       </p>
       <button
         onClick={handleScan}
         disabled={isScanning}
-        className="rounded bg-zinc-900 px-4 py-3 text-base font-semibold text-white disabled:opacity-50"
+        className="min-h-12 rounded-2xl bg-[var(--primary)] px-4 text-base font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-[0.99] disabled:opacity-50"
       >
-        {isScanning ? "Scanning…" : "📷 Scan a bottle"}
+        {isScanning ? "Scanning…" : "Scan a bottle"}
       </button>
       {message && (
         <p
-          className={`text-sm ${isError ? "text-red-700" : "text-zinc-800"}`}
+          className={`text-sm ${isError ? "text-[var(--danger-text)]" : "text-[var(--text-primary)]"}`}
           role="status"
         >
           {message}

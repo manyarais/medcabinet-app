@@ -42,18 +42,22 @@ export function CabinetOutToggleButton({
   }
 
   return (
-    <div className="mt-2 flex flex-col gap-1">
+    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
       <button
         type="button"
         onClick={handleClick}
         disabled={isSaving}
         aria-label={`${outOfCabinet ? "Put back" : "Take out"} ${brandName}`}
-        className="rounded border border-zinc-300 bg-white/80 px-2 py-1 text-xs font-medium text-zinc-800 disabled:opacity-50"
+        className={`inline-flex min-h-8 w-full items-center justify-center rounded-full px-2.5 text-[11px] font-semibold transition duration-150 active:scale-95 disabled:opacity-50 ${
+          outOfCabinet
+            ? "bg-[var(--primary)] text-[var(--text-on-primary)]"
+            : "bg-[var(--accent-cream)] text-[var(--text-primary)]"
+        }`}
       >
-        {isSaving ? "Saving..." : outOfCabinet ? "Put back" : "Take out"}
+        {isSaving ? "…" : outOfCabinet ? "Put back" : "Take out"}
       </button>
       {error && (
-        <p className="text-[10px] leading-tight text-red-700" role="alert">
+        <p className="text-[10px] leading-tight text-[var(--danger-text)]" role="alert">
           {error}
         </p>
       )}

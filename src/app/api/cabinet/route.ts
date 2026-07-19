@@ -6,6 +6,7 @@ import {
   validateAssignableCompartment,
 } from "@/lib/cabinet";
 import { prisma } from "@/lib/db";
+import { ensureRxCalendarSchedule } from "@/lib/rxScheduleFromLabel";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
@@ -82,6 +83,8 @@ export async function POST(request: NextRequest) {
         status: "active",
       },
     });
+
+    await ensureRxCalendarSchedule(medication.id);
 
     return NextResponse.json({ medication }, { status: 201 });
   } catch (error) {

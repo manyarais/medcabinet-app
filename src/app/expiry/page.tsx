@@ -3,6 +3,7 @@
 
 import { DisposeButton } from "@/components/DisposeButton";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
 import { expiryStatusFor, SOON_DAYS, type ExpiryStatus } from "@/lib/expiration";
 import type { Medication } from "@prisma/client";
@@ -36,55 +37,54 @@ export default async function ExpiryPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-zinc-900">Expiration</h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          Every active medication by expiration status. Disposing keeps a
-          record but frees the compartment.
-        </p>
-      </header>
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-6">
+      <PageHeader
+        title="Expiry"
+        subtitle="By status. Disposing keeps a record and frees the bay."
+      />
 
       {SECTION_ORDER.map(({ status, title, blurb }) => {
         const list = byStatus.get(status) ?? [];
         if (list.length === 0) return null;
         return (
-          <section key={status} className="mb-6">
+          <section key={status} className="mb-7">
             <h2
-              className={`text-lg font-semibold ${
+              className={`text-xs font-bold uppercase tracking-wider ${
                 status === "expired"
-                  ? "text-red-700"
+                  ? "text-[var(--danger-text)]"
                   : status === "soon"
-                    ? "text-amber-700"
-                    : "text-zinc-900"
+                    ? "text-[var(--warning-text)]"
+                    : "text-[var(--text-secondary)]"
               }`}
             >
-              {title} ({list.length})
+              {title} · {list.length}
             </h2>
-            {blurb && <p className="text-xs text-zinc-500">{blurb}</p>}
-            <ul className="mt-2 flex flex-col gap-2">
+            {blurb && (
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">{blurb}</p>
+            )}
+            <ul className="mt-3 flex flex-col gap-2">
               {list.map((med) => (
                 <li
                   key={med.id}
-                  className={`rounded border px-3 py-2.5 ${
+                  className={`rounded-2xl px-4 py-3.5 shadow-sm shadow-black/[0.04] ${
                     status === "expired"
-                      ? "border-red-300 bg-red-50/60"
+                      ? "bg-[var(--danger-bg)]"
                       : status === "soon"
-                        ? "border-amber-300 bg-amber-50/60"
-                        : "border-zinc-200 bg-white"
+                        ? "bg-[var(--warning-bg)]"
+                        : "bg-[var(--surface)]"
                   }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-900">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">
                         {med.brandName}
-                        <span className="ml-2 font-normal text-zinc-500">
+                        <span className="ml-2 font-normal text-[var(--text-secondary)]">
                           {med.personName ?? "Household"}
-                          {med.compartment != null && ` · compartment ${med.compartment}`}
+                          {med.compartment != null && ` · ${med.compartment}`}
                         </span>
                       </p>
-                      <p className="text-xs text-zinc-600">
-                        Expiration: {med.expirationDate ?? "unknown"}
+                      <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+                        Expires {med.expirationDate ?? "unknown"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -101,11 +101,13 @@ export default async function ExpiryPage() {
 
       {disposed.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-lg font-semibold text-zinc-400">Recently disposed</h2>
-          <ul className="mt-2 flex flex-col gap-1">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+            Recently disposed
+          </h2>
+          <ul className="mt-3 flex flex-col gap-1.5">
             {disposed.map((med) => (
-              <li key={med.id} className="text-xs text-zinc-400">
-                {med.brandName} — disposed{" "}
+              <li key={med.id} className="text-xs text-[var(--text-secondary)]">
+                {med.brandName} —{" "}
                 {med.disposedAt ? med.disposedAt.toLocaleDateString() : ""}
               </li>
             ))}

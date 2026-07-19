@@ -1,7 +1,6 @@
-// Seeds 12 realistic medications — the first 8 fill cabinet compartments 1–8
-// (matching the light strips), the rest stay in the library unassigned — plus
-// at least one active prescription schedule covering today so /calendar has
-// content.
+// Seeds 12 realistic medications — compartments 1–6 OTC, 7–8 Rx (Amoxicillin /
+// Lisinopril) so the calendar only shows doses for meds actually in a bay.
+// Extra OTC stay in the library unassigned.
 
 import { PrismaClient } from "@prisma/client";
 import { sizeForCompartment } from "../src/lib/compartments";
@@ -97,6 +96,35 @@ const medications = [
     status: "active",
   },
   {
+    brandName: "Amoxicillin",
+    genericName: "amoxicillin",
+    productType: "PRESCRIPTION",
+    indications:
+      "Amoxicillin is indicated in the treatment of infections due to susceptible strains of designated microorganisms.",
+    purpose: "Antibiotic",
+    warnings:
+      "Serious and occasionally fatal hypersensitivity (anaphylactic) reactions have been reported in patients on penicillin therapy.",
+    dosage:
+      "As directed by your physician. Typical adult dose: 250–500 mg every 8 hours.",
+    expirationDate: "2026-09",
+    compartment: 7,
+    status: "active",
+  },
+  {
+    brandName: "Lisinopril",
+    genericName: "lisinopril",
+    productType: "PRESCRIPTION",
+    indications:
+      "Lisinopril is indicated for the treatment of hypertension in adult patients and pediatric patients 6 years of age and older.",
+    purpose: "ACE inhibitor",
+    warnings:
+      "When pregnancy is detected, discontinue lisinopril as soon as possible. Drugs that act directly on the renin-angiotensin system can cause injury and death to the developing fetus.",
+    dosage: "As directed by your physician. Typical adult dose: 10 mg once daily.",
+    expirationDate: "2027-05",
+    compartment: 8,
+    status: "active",
+  },
+  {
     brandName: "Mucinex",
     genericName: "guaifenesin",
     productType: "OTC",
@@ -106,7 +134,7 @@ const medications = [
     warnings: "Ask a doctor before use if you have a persistent or chronic cough such as occurs with smoking, asthma, chronic bronchitis, or emphysema.",
     dosage: "Adults and children 12 years and over: 1 or 2 tablets every 12 hours. Do not exceed 4 tablets in 24 hours.",
     expirationDate: "2027-09",
-    compartment: 7,
+    compartment: null as number | null,
     status: "active",
   },
   {
@@ -120,7 +148,7 @@ const medications = [
       "Liver warning: This product contains acetaminophen. Do not use with any other drug containing acetaminophen.",
     dosage: "Take 2 LiquiCaps with water every 4 hours. Do not exceed 6 doses in 24 hours.",
     expirationDate: "2027-02",
-    compartment: 8,
+    compartment: null as number | null,
     status: "active",
   },
   {
@@ -150,35 +178,6 @@ const medications = [
     dosage:
       "Chew or dissolve in mouth: 2 tablets every 1/2 to 1 hour as needed. Do not exceed 8 doses (16 tablets) in 24 hours.",
     expirationDate: "2027-08",
-    compartment: null as number | null,
-    status: "active",
-  },
-  {
-    brandName: "Amoxicillin",
-    genericName: "amoxicillin",
-    productType: "PRESCRIPTION",
-    indications:
-      "Amoxicillin is indicated in the treatment of infections due to susceptible strains of designated microorganisms.",
-    purpose: "Antibiotic",
-    warnings:
-      "Serious and occasionally fatal hypersensitivity (anaphylactic) reactions have been reported in patients on penicillin therapy.",
-    dosage:
-      "As directed by your physician. Typical adult dose: 250–500 mg every 8 hours.",
-    expirationDate: "2026-09",
-    compartment: null as number | null,
-    status: "active",
-  },
-  {
-    brandName: "Lisinopril",
-    genericName: "lisinopril",
-    productType: "PRESCRIPTION",
-    indications:
-      "Lisinopril is indicated for the treatment of hypertension in adult patients and pediatric patients 6 years of age and older.",
-    purpose: "ACE inhibitor",
-    warnings:
-      "When pregnancy is detected, discontinue lisinopril as soon as possible. Drugs that act directly on the renin-angiotensin system can cause injury and death to the developing fetus.",
-    dosage: "As directed by your physician. Typical adult dose: 10 mg once daily.",
-    expirationDate: "2027-05",
     compartment: null as number | null,
     status: "active",
   },

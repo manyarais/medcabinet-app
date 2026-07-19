@@ -120,8 +120,8 @@ export function PendingScanCard({
   }
 
   return (
-    <div className="rounded border-2 border-amber-300 bg-amber-50/40 p-4">
-      <p className="text-sm font-semibold text-amber-900">
+    <div className="rounded-2xl bg-[var(--warning-bg)] p-4 shadow-sm shadow-black/[0.04]">
+      <p className="text-sm font-semibold text-[var(--warning-text)]">
         Review this scan — check the fields against the photos, fix anything
         the AI got wrong, then confirm.
       </p>
@@ -134,7 +134,7 @@ export function PendingScanCard({
               key={src}
               src={src}
               alt="Scanned label"
-              className="h-28 w-28 shrink-0 rounded border border-zinc-300 object-cover"
+              className="h-28 w-28 shrink-0 rounded-xl object-cover"
             />
           ))}
         </div>
@@ -144,11 +144,11 @@ export function PendingScanCard({
         {FIELDS.map(({ key, label }) => {
           const uncertain = values[key].includes("[?]");
           return (
-            <label key={key} className="flex flex-col gap-0.5 text-xs text-zinc-600">
+            <label key={key} className="flex flex-col gap-0.5 text-xs text-[var(--text-secondary)]">
               <span>
                 {label}
                 {uncertain && (
-                  <span className="ml-1 font-semibold text-amber-700">
+                  <span className="ml-1 font-semibold text-[var(--warning-text)]">
                     — AI was unsure, please check
                   </span>
                 )}
@@ -158,10 +158,10 @@ export function PendingScanCard({
                 onChange={(event) =>
                   setValues((v) => ({ ...v, [key]: event.target.value }))
                 }
-                className={`rounded border px-2 py-1.5 text-sm text-zinc-900 ${
+                className={`rounded-xl border-0 px-2.5 py-2 text-sm text-[var(--text-primary)] outline-none focus:ring-2 focus:ring-[var(--primary)]/25 ${
                   uncertain
-                    ? "border-amber-500 bg-amber-50 ring-1 ring-amber-400"
-                    : "border-zinc-300 bg-white"
+                    ? "bg-[var(--surface)] ring-2 ring-[var(--warning)]"
+                    : "bg-[var(--surface)]"
                 }`}
               />
             </label>
@@ -170,7 +170,7 @@ export function PendingScanCard({
       </div>
 
       {warnings.length > 0 && (
-        <div className="mt-3 rounded border border-sky-300 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+        <div className="mt-3 rounded-2xl bg-[var(--rx-bg)] px-3 py-2.5 text-xs text-[var(--rx-text)]">
           <p className="font-semibold">Shared active ingredients (informational):</p>
           {warnings.map((w) => (
             <p key={w.ingredient}>
@@ -184,10 +184,10 @@ export function PendingScanCard({
 
       {med.rawLabelText && (
         <details className="mt-2">
-          <summary className="cursor-pointer text-xs text-zinc-500">
+          <summary className="cursor-pointer text-xs text-[var(--text-secondary)]">
             Full text the AI read
           </summary>
-          <pre className="mt-1 whitespace-pre-wrap text-xs text-zinc-600">
+          <pre className="mt-1 whitespace-pre-wrap text-xs text-[var(--text-secondary)]">
             {med.rawLabelText}
           </pre>
         </details>
@@ -197,28 +197,28 @@ export function PendingScanCard({
         <button
           onClick={() => confirm(true)}
           disabled={busy}
-          className="flex-1 rounded bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+          className="min-h-11 flex-1 rounded-2xl bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] disabled:opacity-50"
         >
-          ✓ Confirm & assign a compartment
+          Confirm & assign a bay
         </button>
         <button
           onClick={() => confirm(false)}
           disabled={busy}
-          className="flex-1 rounded border border-zinc-400 px-4 py-2.5 text-sm font-semibold text-zinc-800 disabled:opacity-50"
+          className="min-h-11 flex-1 rounded-2xl bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--text-primary)] transition duration-150 disabled:opacity-50"
         >
-          Save without compartment
+          Save without bay
         </button>
         <button
           onClick={discard}
           disabled={busy}
-          className="rounded border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 disabled:opacity-50"
+          className="min-h-11 rounded-2xl bg-[var(--danger-bg)] px-4 text-sm font-semibold text-[var(--danger-text)] transition duration-150 disabled:opacity-50"
         >
           Discard
         </button>
       </div>
 
       {message && (
-        <p className="mt-2 text-sm text-zinc-800" role="status">
+        <p className="mt-2 text-sm text-[var(--text-primary)]" role="status">
           {message}
         </p>
       )}

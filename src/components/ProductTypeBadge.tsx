@@ -1,4 +1,4 @@
-// Small OTC / Rx badge used on search results and detail pages.
+// OTC / Rx badge — pale bg + dark text (design tokens).
 
 import type { ProductType } from "@/lib/types";
 
@@ -8,14 +8,14 @@ export function ProductTypeBadge({ productType }: { productType: ProductType | s
 
   const label = isOtc ? "OTC" : isRx ? "Rx" : productType;
   const className = isOtc
-    ? "bg-[var(--brand-sage)] text-zinc-900"
+    ? "bg-[var(--otc-bg)] text-[var(--otc-text)]"
     : isRx
-      ? "bg-amber-100 text-amber-900"
-      : "bg-zinc-100 text-zinc-700";
+      ? "bg-[var(--rx-bg)] text-[var(--rx-text)]"
+      : "bg-[var(--surface-tint)] text-[var(--text-secondary)]";
 
   return (
     <span
-      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold tracking-wide ${className}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${className}`}
     >
       {label}
     </span>

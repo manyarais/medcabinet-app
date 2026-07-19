@@ -43,6 +43,7 @@ export async function getHomeDashboardData(): Promise<HomeDashboardData> {
     (rx) =>
       rx.medication.status === "active" &&
       rx.medication.productType === "PRESCRIPTION" &&
+      rx.medication.compartment != null &&
       isDateInInclusiveRange(today, rx.startDate, rx.endDate),
   );
 

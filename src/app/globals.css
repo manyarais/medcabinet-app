@@ -1,39 +1,187 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7faf9;
-  --foreground: #18181b;
-  --brand-sage: #cfe0dd;
-  --brand-sage-deep: #5a7a74;
+  /* Base */
+  --background: #f7f5f0;
+  --surface: #ffffff;
+  --surface-tint: #eaf1ef;
+
+  /* Brand */
+  --primary: #5f8a7e;
+  --primary-pressed: #4c7265;
+  --brand-tint: #cfe0dd;
+  --accent-cream: #f1ede2;
+  --header-pill: #f1ede2;
+
+  /* Text */
+  --text-primary: #1a1d1c;
+  --text-secondary: #5c6663;
+  --text-on-primary: #ffffff;
+
+  /* Semantic (muted bg + readable text; accent for dots/icons) */
+  --otc: #5f8a7e;
+  --otc-bg: #deeae6;
+  --otc-text: #2f5348;
+  --rx: #5b7a9d;
+  --rx-bg: #dfe8f2;
+  --rx-text: #334d6b;
+  --warning: #c58f3d;
+  --warning-bg: #f5e9d4;
+  --warning-text: #7a5418;
+  --danger: #b4554b;
+  --danger-bg: #f4ddda;
+  --danger-text: #7c2f27;
+
+  --border: #e5e3dc;
+
+  /* Back-compat aliases (older screens) */
+  --bg: var(--background);
+  --ink: var(--text-primary);
+  --muted: var(--text-secondary);
+  --brand: var(--brand-tint);
+  --brand-sage: var(--brand-tint);
+  --brand-deep: var(--primary);
+  --brand-sage-deep: var(--primary);
+  --foreground: var(--text-primary);
+  --amber: var(--warning);
+  --press: var(--accent-cream);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light) {
+    --background: #141715;
+    --surface: #1d211f;
+    --surface-tint: #242b28;
+
+    --primary: #7faea1;
+    --primary-pressed: #93bfb3;
+    --brand-tint: #2a3833;
+    --accent-cream: #2e2c25;
+    --header-pill: #ecedea;
+
+    --text-primary: #ecedea;
+    --text-secondary: #9aa6a1;
+    --text-on-primary: #10201b;
+
+    --otc: #7faea1;
+    --otc-bg: #22352f;
+    --otc-text: #a9ccc1;
+    --rx: #7e9fc4;
+    --rx-bg: #232f3d;
+    --rx-text: #a9c3de;
+    --warning: #d3a45b;
+    --warning-bg: #3a3121;
+    --warning-text: #dfc08a;
+    --danger: #cb7a70;
+    --danger-bg: #3b2523;
+    --danger-text: #e2a79f;
+
+    --border: #2c332f;
+
+    color-scheme: dark;
+  }
+}
+
+/* Manual dark override (also covers system when JS adds .dark) */
+html.dark {
+  --background: #141715;
+  --surface: #1d211f;
+  --surface-tint: #242b28;
+
+  --primary: #7faea1;
+  --primary-pressed: #93bfb3;
+  --brand-tint: #2a3833;
+  --accent-cream: #2e2c25;
+  --header-pill: #ecedea;
+
+  --text-primary: #ecedea;
+  --text-secondary: #9aa6a1;
+  --text-on-primary: #10201b;
+
+  --otc: #7faea1;
+  --otc-bg: #22352f;
+  --otc-text: #a9ccc1;
+  --rx: #7e9fc4;
+  --rx-bg: #232f3d;
+  --rx-text: #a9c3de;
+  --warning: #d3a45b;
+  --warning-bg: #3a3121;
+  --warning-text: #dfc08a;
+  --danger: #cb7a70;
+  --danger-bg: #3b2523;
+  --danger-text: #e2a79f;
+
+  --border: #2c332f;
+
+  color-scheme: dark;
+}
+
+/* Manual light override when OS is dark */
+html.light {
+  --background: #f7f5f0;
+  --surface: #ffffff;
+  --surface-tint: #eaf1ef;
+
+  --primary: #5f8a7e;
+  --primary-pressed: #4c7265;
+  --brand-tint: #cfe0dd;
+  --accent-cream: #f1ede2;
+  --header-pill: #f1ede2;
+
+  --text-primary: #1a1d1c;
+  --text-secondary: #5c6663;
+  --text-on-primary: #ffffff;
+
+  --otc: #5f8a7e;
+  --otc-bg: #deeae6;
+  --otc-text: #2f5348;
+  --rx: #5b7a9d;
+  --rx-bg: #dfe8f2;
+  --rx-text: #334d6b;
+  --warning: #c58f3d;
+  --warning-bg: #f5e9d4;
+  --warning-text: #7a5418;
+  --danger: #b4554b;
+  --danger-bg: #f4ddda;
+  --danger-text: #7c2f27;
+
+  --border: #e5e3dc;
+
+  color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-brand-sage: var(--brand-sage);
-  --color-brand-sage-deep: var(--brand-sage-deep);
+  --color-foreground: var(--text-primary);
+  --color-brand-sage: var(--brand-tint);
+  --color-brand-sage-deep: var(--primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: var(--text-primary);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+main a.underline,
+main .underline {
+  text-decoration: none;
 }
 
 @media print {
-  nav {
+  nav,
+  header[data-app-header],
+  [data-tab-bar] {
     display: none !important;
   }
 
   body {
     background: white !important;
     color: black !important;
-  }
-
-  main {
-    max-width: none !important;
-    padding: 0 !important;
   }
 }

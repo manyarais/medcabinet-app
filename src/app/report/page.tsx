@@ -3,6 +3,7 @@
 
 import { PrintButton } from "@/components/PrintButton";
 import { ReportEditableTable } from "@/components/ReportEditableTable";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
 import { expiryStatusFor } from "@/lib/expiration";
 
@@ -38,32 +39,28 @@ export default async function ReportPage() {
   }));
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">
-            Medication reconciliation report
-          </h1>
-          <p className="mt-1 text-sm text-zinc-600">
-            Generated {generated}. Household medications currently on record in
-            Pillio — verify against physical bottles before appointments.
-          </p>
-          <p className="mt-1 text-xs text-zinc-500 print:hidden">
-            Use Edit on a row to fix name, dosage, who it belongs to, prescriber,
-            pharmacy, Rx #, or expiry. Location is managed on Cabinet.
-          </p>
-        </div>
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-6 print:max-w-3xl">
+      <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
+        <PageHeader
+          className="mb-0 flex-1"
+          title="Report"
+          subtitle={`Generated ${generated}. Verify against bottles before appointments.`}
+        />
         <PrintButton />
-      </header>
+      </div>
+      <p className="mb-5 text-xs text-[var(--text-secondary)] print:hidden">
+        Edit a row to fix name, dosage, person, prescriber, pharmacy, Rx #, or expiry.
+        Location is on Cabinet.
+      </p>
 
       <ReportEditableTable meds={reportMeds} />
 
       {disposed.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-sm font-semibold text-zinc-500">
-            Disposed medications (for the record)
+        <section className="mt-8">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+            Disposed (for the record)
           </h2>
-          <ul className="mt-1 text-xs text-zinc-500">
+          <ul className="mt-2 text-xs text-[var(--text-secondary)]">
             {disposed.map((med) => (
               <li key={med.id}>
                 {med.brandName} — disposed{" "}
@@ -74,9 +71,9 @@ export default async function ReportPage() {
         </section>
       )}
 
-      <p className="mt-6 text-xs text-zinc-400">
-        This report lists what is physically recorded in the household cabinet.
-        It is not medical advice and does not confirm any medication was taken.
+      <p className="mt-8 text-xs text-[var(--text-secondary)]">
+        Lists what is recorded in the household cabinet. Not medical advice — does not
+        confirm any medication was taken.
       </p>
     </main>
   );

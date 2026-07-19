@@ -1,6 +1,7 @@
-// Prescription calendar month view (Phase 5).
+// Prescription calendar.
 
 import { PrescriptionCalendar } from "@/components/PrescriptionCalendar";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { isValidDateString, todayLocal } from "@/lib/dates";
 import Link from "next/link";
 
@@ -16,23 +17,20 @@ export default async function CalendarPage({ searchParams }: PageProps) {
   const initialDate = isValidDateString(requested) ? requested : todayLocal();
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8">
-      <header className="mb-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold text-zinc-900">Calendar</h1>
-            <p className="mt-1 text-sm text-zinc-600">
-              Month view of scheduled prescription doses. Reminder only — not medical advice.
-            </p>
-          </div>
-          <Link
-            href="/settings"
-            className="text-sm font-medium text-[var(--brand-sage-deep)] hover:underline"
-          >
-            Reminder settings
-          </Link>
-        </div>
-      </header>
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-6 lg:max-w-5xl">
+      <div className="mb-5 flex items-end justify-between gap-3">
+        <PageHeader
+          className="mb-0"
+          title="Calendar"
+          subtitle="Scheduled doses — reminder only, not medical advice."
+        />
+        <Link
+          href="/settings"
+          className="mb-1 shrink-0 rounded-full bg-[var(--surface-tint)] px-3 py-2 text-xs font-semibold text-[var(--primary)] transition duration-150 active:scale-95"
+        >
+          Reminders
+        </Link>
+      </div>
       <PrescriptionCalendar initialDate={initialDate} />
     </main>
   );

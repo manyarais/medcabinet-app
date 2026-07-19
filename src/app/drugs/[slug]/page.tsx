@@ -87,14 +87,17 @@ export default async function DrugDetailPage({ params, searchParams }: PageProps
   const showCatalogAddFirst = fromCatalog && !cabinetMatch && displayDrug != null;
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-8">
-      <Link href="/" className="mb-6 text-sm font-medium text-[var(--brand-sage-deep)] hover:underline">
-        ← Back to search
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-6">
+      <Link
+        href="/"
+        className="mb-5 text-sm font-semibold text-[var(--primary)]"
+      >
+        ← Back
       </Link>
 
       {lookupError && !cabinetMatch && (
         <p
-          className="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800"
+          className="mb-4 rounded-2xl bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger-text)]"
           role="alert"
         >
           Could not load label data: {lookupError}
@@ -102,7 +105,7 @@ export default async function DrugDetailPage({ params, searchParams }: PageProps
       )}
 
       {!displayDrug && (
-        <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
+        <p className="rounded-2xl bg-[var(--accent-cream)] px-4 py-10 text-center text-sm text-[var(--text-secondary)]">
           No openFDA label found for “{brandFromSlug}”.
         </p>
       )}
@@ -119,26 +122,26 @@ export default async function DrugDetailPage({ params, searchParams }: PageProps
                 />
               )}
             </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
+            <h1 className="text-[1.85rem] font-semibold leading-[1.15] tracking-tight text-[var(--text-primary)]">
               {displayDrug.brandName}
             </h1>
-            <p className="text-base text-zinc-600">
+            <p className="text-[15px] text-[var(--text-secondary)]">
               {displayDrug.genericName ?? "Generic name unavailable"}
             </p>
             {fromCatalog && !cabinetMatch && (
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-[var(--text-secondary)]">
                 Product label from openFDA. Prefer scanning the bottle when you have it.
               </p>
             )}
             {!drug && cabinetMatch && (
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-[var(--text-secondary)]">
                 Showing saved cabinet data (live label lookup had no match).
               </p>
             )}
           </header>
 
           {showCatalogAddFirst && (
-            <div className="rounded-lg border-2 border-zinc-900 bg-white p-1">
+            <div className="rounded-2xl bg-[var(--surface)] p-1 shadow-sm shadow-black/[0.04] ring-2 ring-[var(--primary)]">
               <AddToCabinetForm drug={displayDrug} occupied={occupied} />
             </div>
           )}
@@ -186,19 +189,25 @@ function CabinetBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded px-2.5 py-1 text-xs font-semibold text-white ${outOfCabinet ? "bg-amber-600" : "bg-zinc-900"}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+        outOfCabinet
+          ? "bg-[var(--warning-bg)] text-[var(--warning-text)]"
+          : "bg-[var(--otc-bg)] text-[var(--otc-text)]"
+      }`}
     >
-      {outOfCabinet ? "Out of cabinet" : "In cabinet"}
-      {compartment != null ? ` — Compartment ${compartment}` : " — pending assignment"}
+      {outOfCabinet ? "Out" : "In cabinet"}
+      {compartment != null ? ` · ${compartment}` : " · pending"}
     </span>
   );
 }
 
 function DetailSection({ title, body }: { title: string; body: string | null }) {
   return (
-    <section>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">{title}</h2>
-      <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
+    <section className="rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-sm shadow-black/[0.04]">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+        {title}
+      </h2>
+      <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-primary)]">
         {body?.trim() ? body : "Not listed on this label."}
       </p>
     </section>

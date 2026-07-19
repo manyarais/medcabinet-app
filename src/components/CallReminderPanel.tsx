@@ -95,9 +95,7 @@ export function CallReminderPanel() {
         return;
       }
       if (json.called?.length) {
-        setMessage(
-          `Calling about ${json.called.map((c) => c.brandName).join(", ")}.`,
-        );
+        setMessage(`Calling about ${json.called.map((c) => c.brandName).join(", ")}.`);
         return;
       }
       setMessage(
@@ -143,13 +141,12 @@ export function CallReminderPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded border border-zinc-200 bg-white px-3 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="text-sm font-medium text-zinc-900">Phone call reminders</p>
-          <p className="text-xs text-zinc-500">
-            Twilio Voice. Reminder only — not medical advice. Phone calls need server
-            auto-call enabled (see README for setup).
+    <div className="flex flex-col gap-3 rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-sm shadow-black/[0.04]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[var(--text-primary)]">Phone call reminders</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-secondary)]">
+            Twilio Voice. Reminder only — not medical advice.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -157,7 +154,7 @@ export function CallReminderPanel() {
             type="button"
             disabled={busy || configured === false}
             onClick={() => void handleTestCall()}
-            className="rounded bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            className="rounded-full bg-[var(--primary)] px-3.5 py-2 text-xs font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-95 disabled:opacity-50"
           >
             {busy ? "Calling…" : "Test call"}
           </button>
@@ -165,103 +162,101 @@ export function CallReminderPanel() {
             type="button"
             disabled={busy || configured === false}
             onClick={() => void handleCallOverdueAgain()}
-            className="rounded border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
+            className="rounded-full bg-[var(--surface-tint)] px-3.5 py-2 text-xs font-semibold text-[var(--text-primary)] transition duration-150 active:scale-95 disabled:opacity-50"
           >
-            Call again (overdue)
+            Call overdue
           </button>
         </div>
       </div>
 
       {configured === false && (
-        <p className="text-xs text-amber-800">
-          Phone calling is not configured on this server. Ask a teammate who manages
-          Twilio credentials, or see the README.
+        <p className="rounded-2xl bg-[var(--warning-bg)] px-3 py-2 text-xs text-[var(--warning-text)]">
+          Phone calling is not configured on this server.
         </p>
       )}
 
       {settings && configured && (
         <>
-          <label className="flex items-start gap-2 text-xs text-zinc-700">
+          <label className="flex items-start gap-2.5 text-xs text-[var(--text-primary)]">
             <input
               type="checkbox"
-              className="mt-0.5"
+              className="mt-0.5 accent-[var(--primary)]"
               checked={settings.serverAutoCall}
               onChange={(e) => update("serverAutoCall", e.target.checked)}
             />
             <span>
-              <span className="font-medium">Server auto-call for overdue doses</span>
-              <span className="block text-zinc-500">
-                Places reminder calls even when the browser is closed (server setup
-                required — see README).
+              <span className="font-semibold">Server auto-call for overdue doses</span>
+              <span className="mt-0.5 block text-[var(--text-secondary)]">
+                Places reminder calls even when the browser is closed.
               </span>
             </span>
           </label>
 
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="font-medium text-zinc-700">
+          <label className="flex flex-col gap-1.5 text-xs">
+            <span className="font-semibold text-[var(--text-primary)]">
               Call message (use {"{brandName}"} and {"{scheduledTime}"})
             </span>
             <textarea
               value={settings.callMessageTemplate}
               onChange={(e) => update("callMessageTemplate", e.target.value)}
               rows={4}
-              className="rounded border border-zinc-300 px-2 py-2 text-sm text-zinc-900"
+              className="rounded-2xl border-0 bg-[var(--surface-tint)] px-3 py-3 text-sm text-[var(--text-primary)] outline-none focus:ring-2 focus:ring-[var(--primary)]/25"
             />
             <button
               type="button"
-              className="self-start text-[11px] text-[var(--brand-sage-deep)] hover:underline"
+              className="self-start text-[11px] font-medium text-[var(--primary)]"
               onClick={() => update("callMessageTemplate", DEFAULT_TEMPLATE)}
             >
               Reset to default
             </button>
           </label>
 
-          <div className="rounded border border-zinc-100 bg-zinc-50 px-2.5 py-2">
-            <label className="flex items-start gap-2 text-xs text-zinc-700">
+          <div className="rounded-2xl bg-[var(--surface-tint)] px-3 py-3">
+            <label className="flex items-start gap-2.5 text-xs text-[var(--text-primary)]">
               <input
                 type="checkbox"
-                className="mt-0.5"
+                className="mt-0.5 accent-[var(--primary)]"
                 checked={settings.quietHoursEnabled}
                 onChange={(e) => update("quietHoursEnabled", e.target.checked)}
               />
               <span>
-                <span className="font-medium">Quiet hours</span>
-                <span className="block text-zinc-500">
+                <span className="font-semibold">Quiet hours</span>
+                <span className="mt-0.5 block text-[var(--text-secondary)]">
                   You choose the window. Doses stay on the calendar either way.
                 </span>
               </span>
             </label>
 
             {settings.quietHoursEnabled && (
-              <div className="mt-2 flex flex-wrap items-end gap-3">
+              <div className="mt-3 flex flex-wrap items-end gap-3">
                 <label className="flex flex-col gap-1 text-xs">
-                  <span className="text-zinc-600">Start</span>
+                  <span className="text-[var(--text-secondary)]">Start</span>
                   <input
                     type="time"
                     value={settings.quietStart}
                     onChange={(e) => update("quietStart", e.target.value)}
-                    className="rounded border border-zinc-300 px-2 py-1.5"
+                    className="rounded-xl border-0 bg-[var(--surface)] px-2.5 py-2 text-[var(--text-primary)]"
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-xs">
-                  <span className="text-zinc-600">End</span>
+                  <span className="text-[var(--text-secondary)]">End</span>
                   <input
                     type="time"
                     value={settings.quietEnd}
                     onChange={(e) => update("quietEnd", e.target.value)}
-                    className="rounded border border-zinc-300 px-2 py-1.5"
+                    className="rounded-xl border-0 bg-[var(--surface)] px-2.5 py-2 text-[var(--text-primary)]"
                   />
                 </label>
-                <label className="flex items-start gap-2 text-xs text-zinc-700">
+                <label className="flex items-start gap-2 text-xs text-[var(--text-primary)]">
                   <input
                     type="checkbox"
-                    className="mt-0.5"
+                    className="mt-0.5 accent-[var(--primary)]"
                     checked={settings.callOverdueDuringQuiet}
                     onChange={(e) => update("callOverdueDuringQuiet", e.target.checked)}
                   />
                   <span>
-                    Still call for <span className="font-medium">overdue</span> doses during quiet
-                    hours (recommended if you need those meds)
+                    Still call for <span className="font-semibold">overdue</span> doses during quiet
+                    hours
                   </span>
                 </label>
               </div>
@@ -272,7 +267,7 @@ export function CallReminderPanel() {
             type="button"
             disabled={saving}
             onClick={() => void saveSettings(settings)}
-            className="self-start rounded border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
+            className="self-start rounded-full bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-95 disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save call settings"}
           </button>
@@ -280,12 +275,12 @@ export function CallReminderPanel() {
       )}
 
       {message && (
-        <p className="text-xs text-[var(--brand-sage-deep)]" role="status">
+        <p className="text-xs font-medium text-[var(--primary)]" role="status">
           {message}
         </p>
       )}
       {error && (
-        <p className="text-xs text-red-700" role="alert">
+        <p className="text-xs text-[var(--danger-text)]" role="alert">
           {error}
         </p>
       )}

@@ -1,17 +1,15 @@
-// Symptom lookup page (Phase 3).
+// Symptom lookup page.
 
 import { SymptomSearch } from "@/components/SymptomSearch";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function SymptomsPage() {
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-zinc-900">Symptoms</h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          Shows OTC medications already in your cabinet whose labels mention what you type.
-          Tapping I took this saves a personal usage log. This is not medical advice.
-        </p>
-      </header>
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-6">
+      <PageHeader
+        title="Symptoms"
+        subtitle="Match what you feel to OTC labels already in your cabinet. Not medical advice."
+      />
       <SymptomSearch />
     </main>
   );

@@ -8,6 +8,7 @@ import { logActivity } from "@/lib/activity";
 import { prisma } from "@/lib/db";
 import { nextFreeCompartment, notifyScanDone } from "@/lib/scanner";
 import { sizeForCompartment } from "@/lib/compartments";
+import { ensureRxCalendarSchedule } from "@/lib/rxScheduleFromLabel";
 import { NextRequest, NextResponse } from "next/server";
 
 const EDITABLE_FIELDS = [
@@ -78,6 +79,8 @@ export async function POST(request: NextRequest) {
 
   if (compartment != null) {
     void notifyScanDone(null, compartment);
+    // Rx bottles that land in a bay get a calendar schedule from the label SIG.
+    await ensureRxCalendarSchedule(id);
   }
   void logActivity("scan_confirmed", {
     medicationId: id,

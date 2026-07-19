@@ -2,6 +2,7 @@
 // out/returned, light flashes). Uses neutral wording: "accessed"/"out", never
 // "taken", unless the user logged a dose elsewhere.
 
+import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -33,36 +34,38 @@ export default async function ActivityPage() {
   const nameById = new Map(meds.map((m) => [m.id, m.brandName]));
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-8">
-      <header className="mb-4">
-        <h1 className="text-2xl font-semibold text-zinc-900">Recent activity</h1>
-        <p className="mt-1 text-sm text-zinc-600">Last {events.length} events, newest first.</p>
-      </header>
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-6">
+      <PageHeader
+        title="Activity"
+        subtitle={`Last ${events.length} events, newest first.`}
+      />
 
       {events.length === 0 ? (
-        <p className="rounded border border-dashed border-zinc-300 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-500">
+        <p className="rounded-2xl bg-[var(--accent-cream)] px-4 py-10 text-center text-sm text-[var(--text-secondary)]">
           No activity yet.
         </p>
       ) : (
-        <ul className="flex flex-col">
-          {events.map((event) => (
+        <ul className="overflow-hidden rounded-2xl bg-[var(--surface)] shadow-sm shadow-black/[0.04]">
+          {events.map((event, i) => (
             <li
               key={event.id}
-              className="flex flex-wrap items-baseline justify-between gap-x-3 border-b border-zinc-100 py-2 text-sm"
+              className={`flex flex-wrap items-baseline justify-between gap-x-3 px-4 py-3.5 text-sm ${
+                i > 0 ? "border-t border-[var(--border)]" : ""
+              }`}
             >
-              <span className="text-zinc-900">
+              <span className="text-[var(--text-primary)]">
                 {TYPE_LABELS[event.type] ?? event.type}
                 {event.medicationId != null && nameById.has(event.medicationId) && (
-                  <span className="font-medium"> — {nameById.get(event.medicationId)}</span>
+                  <span className="font-semibold"> — {nameById.get(event.medicationId)}</span>
                 )}
                 {event.compartment != null && (
-                  <span className="text-zinc-500"> (compartment {event.compartment})</span>
+                  <span className="text-[var(--text-secondary)]"> · bay {event.compartment}</span>
                 )}
                 {event.detail && !nameById.has(event.medicationId ?? -1) && (
-                  <span className="text-zinc-500"> — {event.detail}</span>
+                  <span className="text-[var(--text-secondary)]"> — {event.detail}</span>
                 )}
               </span>
-              <span className="text-xs text-zinc-400">
+              <span className="text-xs text-[var(--text-secondary)]">
                 {event.createdAt.toLocaleString()}
               </span>
             </li>

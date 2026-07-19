@@ -41,10 +41,12 @@ export async function GET(request: NextRequest) {
     orderBy: [{ startDate: "asc" }, { id: "asc" }],
   });
 
+  // Only doses for Rx meds that are actually in a cabinet bay.
   const active = prescriptions.filter(
     (rx) =>
       rx.medication.status === "active" &&
       rx.medication.productType === "PRESCRIPTION" &&
+      rx.medication.compartment != null &&
       isDateInInclusiveRange(dateParam, rx.startDate, rx.endDate),
   );
 

@@ -12,6 +12,7 @@
   --brand-tint: #cfe0dd;
   --accent-cream: #f1ede2;
   --header-pill: #f1ede2;
+  --header-ink: #1a1d1c;
 
   /* Text */
   --text-primary: #1a1d1c;
@@ -60,6 +61,7 @@
     --brand-tint: #2a3833;
     --accent-cream: #2e2c25;
     --header-pill: #ecedea;
+    --header-ink: #1a1d1c;
 
     --text-primary: #ecedea;
     --text-secondary: #9aa6a1;
@@ -95,6 +97,7 @@ html.dark {
   --brand-tint: #2a3833;
   --accent-cream: #2e2c25;
   --header-pill: #ecedea;
+  --header-ink: #1a1d1c;
 
   --text-primary: #ecedea;
   --text-secondary: #9aa6a1;
@@ -129,6 +132,7 @@ html.light {
   --brand-tint: #cfe0dd;
   --accent-cream: #f1ede2;
   --header-pill: #f1ede2;
+  --header-ink: #1a1d1c;
 
   --text-primary: #1a1d1c;
   --text-secondary: #5c6663;

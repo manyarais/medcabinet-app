@@ -28,18 +28,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           />
           <Link
             href="/"
-            className="relative z-[1] inline-flex min-h-12 items-center px-3"
+            className="relative z-[1] inline-flex min-h-12 items-center gap-2.5 px-3"
             aria-label="Pillio home"
           >
             <Image
-              src="/logo.png"
-              alt="Pillio"
-              width={200}
-              height={52}
+              src="/icon.png"
+              alt=""
+              width={40}
+              height={40}
               priority
-              className="h-11 w-auto max-w-[220px] object-contain"
-              style={{ width: "auto", height: 44 }}
+              className="h-10 w-10 rounded-[10px] object-cover shadow-sm shadow-black/10"
             />
+            <span className="text-[1.35rem] font-semibold tracking-tight text-[var(--header-ink)]">
+              Pillio
+            </span>
           </Link>
         </div>
       </header>

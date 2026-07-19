@@ -6,6 +6,8 @@ import { HomeTodayCard } from "@/components/HomeTodayCard";
 import { getHomeDashboardData } from "@/lib/homeDashboard";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const { doseSummaries, activeMedCount, outOfCabinetCount } =
     await getHomeDashboardData();

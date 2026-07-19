@@ -4,6 +4,8 @@ import { PrescriptionCalendar } from "@/components/PrescriptionCalendar";
 import { isValidDateString, todayLocal } from "@/lib/dates";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   searchParams: Promise<{ date?: string }>;
 };

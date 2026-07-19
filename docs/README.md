@@ -25,6 +25,7 @@ They are based on `PRD.md`, then expanded with coaching questions and recommenda
 | 7 | `AUDIT_SCORECARD.md` | Product / tech / capability audits |
 | 8 | `EXPERIENCE_AUDIT_2026-07-19.md` | Completed CCO/CXO/CPO audit of the running app |
 | 9 | `EXPERIENCE_UPLIFT_PLAN.md` | Findings → concrete, prompt-ready specs to reach a 9–10 experience |
+| 10 | `TEST_PLAN.md` | What to test, in what order, and how you’d know it passes (no tests exist yet) |
 
 ## Conflict guidance
 

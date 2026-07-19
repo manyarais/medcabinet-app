@@ -141,7 +141,7 @@ export function CallReminderPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-sm shadow-black/[0.04]">
+    <div className="flex flex-col gap-3 rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-[var(--shadow-soft)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-[var(--text-primary)]">Phone call reminders</p>
@@ -154,7 +154,7 @@ export function CallReminderPanel() {
             type="button"
             disabled={busy || configured === false}
             onClick={() => void handleTestCall()}
-            className="rounded-full bg-[var(--primary)] px-3.5 py-2 text-xs font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-95 disabled:opacity-50"
+            className="btn-primary-fill rounded-full px-3.5 py-2 text-xs font-semibold transition duration-150 ease-out active:scale-95 disabled:opacity-50"
           >
             {busy ? "Calling…" : "Test call"}
           </button>
@@ -267,7 +267,7 @@ export function CallReminderPanel() {
             type="button"
             disabled={saving}
             onClick={() => void saveSettings(settings)}
-            className="self-start rounded-full bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-95 disabled:opacity-50"
+            className="self-start btn-primary-fill rounded-full px-4 py-2 text-xs font-semibold transition duration-150 ease-out active:scale-95 disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save call settings"}
           </button>

@@ -272,7 +272,7 @@ export function PrescriptionCalendar({ initialDate }: Props) {
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-      <section className="min-w-0 flex-1 overflow-hidden rounded-2xl bg-[var(--surface)] shadow-sm shadow-black/[0.04]">
+      <section className="min-w-0 flex-1 overflow-hidden rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-soft)]">
         <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-3 py-3">
           <div className="flex items-center gap-1">
             <button
@@ -379,7 +379,7 @@ export function PrescriptionCalendar({ initialDate }: Props) {
         </div>
       </section>
 
-      <aside className="w-full shrink-0 rounded-2xl bg-[var(--surface)] p-4 shadow-sm shadow-black/[0.04] lg:w-80">
+      <aside className="w-full shrink-0 rounded-2xl bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)] lg:w-80">
         <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
           {dayData?.isToday ? "Today" : dayData?.isPast ? "Past day" : "Upcoming"}
         </p>
@@ -459,7 +459,7 @@ export function PrescriptionCalendar({ initialDate }: Props) {
                     <p className="text-xs text-[var(--text-secondary)]">
                       Dose {dose.doseIndex}/{dose.dosesPerDay} · {dose.pillsPerDose}{" "}
                       pill{dose.pillsPerDose === 1 ? "" : "s"}
-                      {dose.compartment != null ? ` · ${dose.compartment}` : ""}
+                      {dose.compartment != null ? ` · #${dose.compartment}` : ""}
                       {canUntake ? " · tap to undo" : ""}
                     </p>
                   </div>

@@ -1,5 +1,6 @@
 // Server data for the home dashboard (previews only — no mutations).
 
+import { getAttentionSnapshot } from "@/lib/attention";
 import {
   dayBoundsLocal,
   isDateInInclusiveRange,
@@ -19,12 +20,14 @@ export type HomeDashboardData = {
   doseSummaries: TodayDoseSummary[];
   activeMedCount: number;
   outOfCabinetCount: number;
+  alertCount: number;
+  soonCount: number;
 };
 
 export async function getHomeDashboardData(): Promise<HomeDashboardData> {
   const today = todayLocal();
 
-  const [medications, prescriptions] = await Promise.all([
+  const [medications, prescriptions, attention] = await Promise.all([
     prisma.medication.findMany({
       where: { status: "active" },
       select: {
@@ -37,6 +40,7 @@ export async function getHomeDashboardData(): Promise<HomeDashboardData> {
       include: { medication: true },
       orderBy: [{ startDate: "asc" }, { id: "asc" }],
     }),
+    getAttentionSnapshot(),
   ]);
 
   const active = prescriptions.filter(
@@ -100,5 +104,7 @@ export async function getHomeDashboardData(): Promise<HomeDashboardData> {
     doseSummaries,
     activeMedCount: medications.length,
     outOfCabinetCount: medications.filter((m) => m.outOfCabinet).length,
+    alertCount: attention.alerts.length,
+    soonCount: attention.soonCount,
   };
 }

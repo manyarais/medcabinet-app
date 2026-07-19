@@ -135,7 +135,7 @@ export function SymptomSearch() {
         <button
           type="submit"
           disabled={isLoading || !query.trim()}
-          className="inline-flex min-h-12 min-w-12 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-95 disabled:opacity-50"
+          className="inline-flex min-h-12 min-w-12 shrink-0 items-center justify-center btn-primary-fill rounded-full text-sm font-semibold transition duration-150 ease-out active:scale-95 disabled:opacity-50"
         >
           {isLoading ? "…" : "Go"}
         </button>
@@ -170,7 +170,7 @@ export function SymptomSearch() {
                 {result.matches.map((match) => (
                   <li
                     key={match.medicationId}
-                    className="rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-sm shadow-black/[0.04]"
+                    className="rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-[var(--shadow-soft)]"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -199,7 +199,7 @@ export function SymptomSearch() {
                       type="button"
                       onClick={() => handleTake(match)}
                       disabled={takingId === match.medicationId}
-                      className="mt-4 min-h-11 rounded-2xl bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] disabled:opacity-50"
+                      className="mt-4 min-h-11 rounded-2xl btn-primary-fill px-4 text-sm font-semibold transition duration-150 ease-out disabled:opacity-50"
                     >
                       {takingId === match.medicationId ? "Logging…" : "I took this"}
                     </button>
@@ -251,7 +251,7 @@ function UsageList({
       {entries.map((entry) => (
         <li
           key={entry.id}
-          className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--surface)] px-4 py-3 shadow-sm shadow-black/[0.04]"
+          className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--surface)] px-4 py-3 shadow-[var(--shadow-soft)]"
         >
           <div className="min-w-0">
             <p className="font-semibold text-[var(--text-primary)]">{entry.brandName}</p>

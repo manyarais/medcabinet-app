@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { COMPARTMENTS, type CompartmentConfig } from "@/lib/compartments";
 import { prisma } from "@/lib/db";
-import { expiryStatusFor, type ExpiryStatus } from "@/lib/expiration";
+import { effectiveExpiryForMedication, type ExpiryStatus } from "@/lib/expiration";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +24,7 @@ type MedInCell = {
 export default async function CabinetPage() {
   const medications = await prisma.medication.findMany({
     where: { status: "active" },
+    include: { prescriptions: { select: { endDate: true } } },
   });
 
   const byCompartment = new Map<number, MedInCell>(
@@ -36,7 +37,11 @@ export default async function CabinetPage() {
           brandName: med.brandName,
           productType: med.productType,
           outOfCabinet: med.outOfCabinet,
-          expiry: expiryStatusFor(med.expirationDate),
+          expiry: effectiveExpiryForMedication({
+            expirationDate: med.expirationDate,
+            productType: med.productType,
+            prescriptionEndDates: med.prescriptions.map((rx) => rx.endDate),
+          }).status,
         },
       ]),
   );
@@ -103,7 +108,7 @@ function CompartmentCell({
 }) {
   if (!med) {
     return (
-      <div className="flex min-h-32 flex-col items-center justify-center rounded-2xl bg-[var(--surface)] px-3 py-4 text-center shadow-sm shadow-black/[0.04]">
+      <div className="flex min-h-32 flex-col items-center justify-center rounded-2xl border border-[var(--border)]/60 bg-[var(--surface)] px-3 py-4 text-center shadow-[var(--shadow-soft)]">
         <LightDot state="empty" />
         <p className="mt-2 text-2xl font-bold tabular-nums text-[var(--text-secondary)]">
           {config.number}
@@ -120,7 +125,7 @@ function CompartmentCell({
 
   return (
     <div
-      className={`flex min-h-32 flex-col justify-between rounded-2xl px-3 py-3 shadow-sm shadow-black/[0.04] transition duration-150 ${shell}`}
+      className={`flex min-h-32 flex-col justify-between rounded-2xl border border-[var(--border)]/60 px-3 py-3 shadow-[var(--shadow-soft)] transition duration-150 ease-out active:scale-[0.98] ${shell}`}
     >
       <div className="flex items-start justify-between gap-1">
         <p className="flex items-center gap-1.5 text-xs font-bold tabular-nums text-[var(--text-secondary)]">

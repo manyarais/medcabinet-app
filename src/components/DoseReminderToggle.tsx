@@ -69,7 +69,7 @@ export function DoseReminderToggle() {
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-sm shadow-black/[0.04]">
+    <div className="flex flex-col gap-2 rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-[var(--shadow-soft)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-[var(--text-primary)]">Desktop reminders</p>
@@ -94,7 +94,7 @@ export function DoseReminderToggle() {
             type="button"
             disabled={busy}
             onClick={() => void handleEnable()}
-            className="rounded-full bg-[var(--primary)] px-3.5 py-2 text-xs font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-95 disabled:opacity-50"
+            className="btn-primary-fill rounded-full px-3.5 py-2 text-xs font-semibold transition duration-150 ease-out active:scale-95 disabled:opacity-50"
           >
             {busy ? "Enabling…" : "Enable"}
           </button>

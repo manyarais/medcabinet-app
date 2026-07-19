@@ -26,6 +26,7 @@ const tabs: Tab[] = [
           stroke={stroke(active)}
           strokeWidth="1.6"
           strokeLinejoin="round"
+          className="transition-[stroke,fill] duration-150 ease-out"
         />
       </svg>
     ),
@@ -44,11 +45,13 @@ const tabs: Tab[] = [
           fill={active ? "var(--brand-tint)" : "none"}
           stroke={stroke(active)}
           strokeWidth="1.6"
+          className="transition-[stroke,fill] duration-150 ease-out"
         />
         <path
           d="M4 9h16M12 9v12"
           stroke={stroke(active)}
           strokeWidth="1.6"
+          className="transition-[stroke] duration-150 ease-out"
         />
       </svg>
     ),
@@ -65,12 +68,14 @@ const tabs: Tab[] = [
           fill={active ? "var(--brand-tint)" : "none"}
           stroke={stroke(active)}
           strokeWidth="1.6"
+          className="transition-[stroke,fill] duration-150 ease-out"
         />
         <path
           d="M12 8v5"
           stroke={stroke(active)}
           strokeWidth="1.8"
           strokeLinecap="round"
+          className="transition-[stroke] duration-150 ease-out"
         />
         <circle cx="12" cy="16.5" r="1" fill={stroke(active)} />
       </svg>
@@ -90,12 +95,14 @@ const tabs: Tab[] = [
           fill={active ? "var(--brand-tint)" : "none"}
           stroke={stroke(active)}
           strokeWidth="1.6"
+          className="transition-[stroke,fill] duration-150 ease-out"
         />
         <path
           d="M3 10h18M8 3v4M16 3v4"
           stroke={stroke(active)}
           strokeWidth="1.6"
           strokeLinecap="round"
+          className="transition-[stroke] duration-150 ease-out"
         />
         {active && (
           <rect x="7" y="13" width="4" height="4" rx="1" fill="var(--primary)" />
@@ -115,12 +122,14 @@ const tabs: Tab[] = [
           fill={active ? "var(--primary)" : "none"}
           stroke={stroke(active)}
           strokeWidth="1.6"
+          className="transition-[stroke,fill] duration-150 ease-out"
         />
         <path
           d="M12 3.5v1.8M12 18.7v1.8M4.9 6.5l1.3 1.3M17.8 16.2l1.3 1.3M3.5 12h1.8M18.7 12h1.8M4.9 17.5l1.3-1.3M17.8 7.8l1.3-1.3"
           stroke={stroke(active)}
           strokeWidth="1.6"
           strokeLinecap="round"
+          className="transition-[stroke] duration-150 ease-out"
         />
       </svg>
     ),
@@ -138,7 +147,7 @@ export function TabBar() {
   return (
     <nav
       data-tab-bar
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md"
+      className="app-glass fixed inset-x-0 bottom-0 z-40 border-t shadow-[var(--shadow-floating)]"
       style={{ paddingBottom: "max(0.4rem, env(safe-area-inset-bottom))" }}
       aria-label="Primary"
     >
@@ -149,18 +158,18 @@ export function TabBar() {
             <li key={tab.href} className="flex-1">
               <Link
                 href={tab.href}
-                className="flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 transition duration-150 active:scale-95"
+                className="flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 transition duration-150 ease-out active:scale-[0.98]"
                 aria-current={active ? "page" : undefined}
               >
                 <span
-                  className={`flex h-9 w-9 items-center justify-center rounded-2xl transition duration-150 ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-2xl transition-[background-color,color] duration-150 ease-out ${
                     active ? "bg-[var(--brand-tint)]" : "bg-transparent"
                   }`}
                 >
                   {tab.icon(active)}
                 </span>
                 <span
-                  className={`text-[10px] font-semibold tracking-wide ${
+                  className={`text-[10px] font-semibold tracking-wide transition-colors duration-150 ease-out ${
                     active ? "text-[var(--primary)]" : "text-[var(--text-secondary)]"
                   }`}
                 >

@@ -3,6 +3,7 @@
 // Travel packing UI: check off medications, "Pack" marks them away and blinks
 // each compartment; "Everything's back" restores them.
 
+import { MedMetaChips } from "@/components/MedMetaChips";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -83,7 +84,7 @@ export function TravelPacker({ meds }: { meds: TravelMed[] }) {
             <ul className="mt-3 flex flex-col gap-2">
               {inCabinet.map((med) => (
                 <li key={med.id}>
-                  <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl bg-[var(--surface)] px-4 py-3 text-sm shadow-sm shadow-black/[0.04]">
+                  <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl bg-[var(--surface)] px-4 py-3 text-sm shadow-[var(--shadow-soft)]">
                     <input
                       type="checkbox"
                       checked={selected.has(med.id)}
@@ -91,10 +92,10 @@ export function TravelPacker({ meds }: { meds: TravelMed[] }) {
                       className="h-4 w-4 accent-[var(--primary)]"
                     />
                     <span className="font-semibold text-[var(--text-primary)]">{med.brandName}</span>
-                    <span className="text-xs text-[var(--text-secondary)]">
-                      {med.personName ?? "Household"}
-                      {med.compartment != null && ` · ${med.compartment}`}
-                    </span>
+                    <MedMetaChips
+                      personName={med.personName}
+                      compartment={med.compartment}
+                    />
                   </label>
                 </li>
               ))}
@@ -102,7 +103,7 @@ export function TravelPacker({ meds }: { meds: TravelMed[] }) {
             <button
               onClick={() => send("pack", [...selected])}
               disabled={busy || selected.size === 0}
-              className="mt-4 min-h-12 w-full rounded-2xl bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-[0.99] disabled:opacity-50"
+              className="mt-4 min-h-12 w-full rounded-2xl btn-primary-fill px-4 text-sm font-semibold transition duration-150 ease-out active:scale-[0.99] disabled:opacity-50"
             >
               Pack {selected.size || ""} selected — blink bays
             </button>
@@ -125,10 +126,10 @@ export function TravelPacker({ meds }: { meds: TravelMed[] }) {
                   className="rounded-2xl bg-[var(--warning-bg)] px-4 py-3 text-sm"
                 >
                   <span className="font-semibold text-[var(--text-primary)]">{med.brandName}</span>{" "}
-                  <span className="text-xs text-[var(--warning-text)]">
-                    {med.personName ?? "Household"}
-                    {med.compartment != null && ` · back to ${med.compartment}`}
-                  </span>
+                  <MedMetaChips
+                    personName={med.personName}
+                    compartment={med.compartment}
+                  />
                 </li>
               ))}
             </ul>

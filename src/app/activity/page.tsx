@@ -45,7 +45,7 @@ export default async function ActivityPage() {
           No activity yet.
         </p>
       ) : (
-        <ul className="overflow-hidden rounded-2xl bg-[var(--surface)] shadow-sm shadow-black/[0.04]">
+        <ul className="overflow-hidden rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-soft)]">
           {events.map((event, i) => (
             <li
               key={event.id}

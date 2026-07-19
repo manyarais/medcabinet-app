@@ -12,7 +12,7 @@ export function ThemeToggle() {
   const { preference, setPreference } = useTheme();
 
   return (
-    <div className="rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-sm shadow-black/[0.04]">
+    <div className="rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-[var(--shadow-soft)]">
       <p className="text-sm font-semibold text-[var(--text-primary)]">Appearance</p>
       <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
         Light, dark, or match your device.
@@ -31,7 +31,7 @@ export function ThemeToggle() {
               onClick={() => setPreference(opt.value)}
               className={`min-h-9 rounded-full text-xs font-semibold transition duration-150 active:scale-95 ${
                 active
-                  ? "bg-[var(--primary)] text-[var(--text-on-primary)] shadow-sm"
+                  ? "btn-primary-fill shadow-[var(--shadow-soft)]"
                   : "text-[var(--text-secondary)]"
               }`}
             >

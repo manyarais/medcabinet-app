@@ -81,7 +81,7 @@ export function DeviceScanButton() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-[var(--surface)] p-4 shadow-sm shadow-black/[0.04]">
+    <div className="flex flex-col gap-3 rounded-2xl bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)]">
       <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
         Put the bottle on the scanner turntable with the label facing the
         camera, then start the scan. It takes about 45 seconds.
@@ -89,7 +89,7 @@ export function DeviceScanButton() {
       <button
         onClick={handleScan}
         disabled={isScanning}
-        className="min-h-12 rounded-2xl bg-[var(--primary)] px-4 text-base font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-[0.99] disabled:opacity-50"
+        className="min-h-12 rounded-2xl btn-primary-fill px-4 text-base font-semibold transition duration-150 ease-out active:scale-[0.99] disabled:opacity-50"
       >
         {isScanning ? "Scanning…" : "Scan a bottle"}
       </button>

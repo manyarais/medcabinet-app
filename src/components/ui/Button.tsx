@@ -8,10 +8,9 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-[var(--primary)] text-[var(--text-on-primary)] active:bg-[var(--primary-pressed)] disabled:opacity-50",
+  primary: "btn-primary-fill disabled:opacity-50",
   secondary:
-    "bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] active:bg-[var(--surface-tint)] disabled:opacity-50",
+    "bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] shadow-[var(--shadow-soft)] active:bg-[var(--surface-tint)] disabled:opacity-50",
   destructive:
     "bg-[var(--danger)] text-[var(--text-on-primary)] active:opacity-90 disabled:opacity-50",
   ghost:

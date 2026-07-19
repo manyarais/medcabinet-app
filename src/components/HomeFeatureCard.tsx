@@ -1,6 +1,13 @@
 import { Card } from "@/components/ui/Card";
 
-type IconName = "cabinet" | "symptoms" | "calendar" | "scan";
+type IconName =
+  | "cabinet"
+  | "symptoms"
+  | "calendar"
+  | "scan"
+  | "travel"
+  | "report"
+  | "activity";
 
 type FeatureCardProps = {
   href: string;
@@ -68,6 +75,52 @@ function FeatureIcon({ name }: { name: IconName }) {
             stroke="var(--primary)"
             strokeWidth="1.75"
             strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "travel":
+      return (
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1M6 10h12l-.8 9.2A2 2 0 0 1 15.2 21H8.8a2 2 0 0 1-2-1.8L6 10Z"
+            stroke="var(--primary)"
+            strokeWidth="1.75"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9 13v4M15 13v4"
+            stroke="var(--primary)"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "report":
+      return (
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"
+            stroke="var(--primary)"
+            strokeWidth="1.75"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M14 3v4h4M9 12h6M9 16h6"
+            stroke="var(--primary)"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "activity":
+      return (
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M4 12h4l2-5 4 10 2-5h4"
+            stroke="var(--primary)"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </svg>
       );

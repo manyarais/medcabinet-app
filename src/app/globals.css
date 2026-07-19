@@ -9,6 +9,7 @@
   /* Brand */
   --primary: #5f8a7e;
   --primary-pressed: #4c7265;
+  --primary-top: #649183;
   --brand-tint: #cfe0dd;
   --accent-cream: #f1ede2;
   --header-pill: #f1ede2;
@@ -35,6 +36,24 @@
 
   --border: #e5e3dc;
 
+  /* Elevation — warm, large-radius, low opacity (no hard small shadows) */
+  --shadow-soft: 0 2px 12px rgba(26, 29, 28, 0.06);
+  --shadow-raised: 0 6px 20px rgba(26, 29, 28, 0.1);
+  --shadow-floating: 0 -4px 24px rgba(26, 29, 28, 0.08);
+
+  /* Glass chrome (header + tab bar) */
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-fallback: #ffffff;
+
+  /* Reserved gradients */
+  --gradient-today: linear-gradient(135deg, #cfe0dd 0%, #eaf1ef 100%);
+  --gradient-primary: linear-gradient(180deg, #649183 0%, #5f8a7e 100%);
+  --gradient-home-glow: radial-gradient(
+    ellipse 80% 50% at 50% -10%,
+    rgba(207, 224, 221, 0.45),
+    transparent 70%
+  );
+
   /* Back-compat aliases (older screens) */
   --bg: var(--background);
   --ink: var(--text-primary);
@@ -58,6 +77,7 @@
 
     --primary: #7faea1;
     --primary-pressed: #93bfb3;
+    --primary-top: #8bb9ac;
     --brand-tint: #2a3833;
     --accent-cream: #2e2c25;
     --header-pill: #ecedea;
@@ -80,13 +100,27 @@
     --danger-bg: #3b2523;
     --danger-text: #e2a79f;
 
+    /* Dark: stronger borders + surface separation beat heavy shadows */
     --border: #2c332f;
+    --shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.22);
+    --shadow-raised: 0 6px 20px rgba(0, 0, 0, 0.32);
+    --shadow-floating: 0 -4px 24px rgba(0, 0, 0, 0.35);
+
+    --glass: rgba(29, 33, 31, 0.72);
+    --glass-fallback: #1d211f;
+
+    --gradient-today: linear-gradient(135deg, #2a3833 0%, #242b28 100%);
+    --gradient-primary: linear-gradient(180deg, #8bb9ac 0%, #7faea1 100%);
+    --gradient-home-glow: radial-gradient(
+      ellipse 80% 50% at 50% -10%,
+      rgba(42, 56, 51, 0.55),
+      transparent 70%
+    );
 
     color-scheme: dark;
   }
 }
 
-/* Manual dark override (also covers system when JS adds .dark) */
 html.dark {
   --background: #141715;
   --surface: #1d211f;
@@ -94,6 +128,7 @@ html.dark {
 
   --primary: #7faea1;
   --primary-pressed: #93bfb3;
+  --primary-top: #8bb9ac;
   --brand-tint: #2a3833;
   --accent-cream: #2e2c25;
   --header-pill: #ecedea;
@@ -117,11 +152,24 @@ html.dark {
   --danger-text: #e2a79f;
 
   --border: #2c332f;
+  --shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.22);
+  --shadow-raised: 0 6px 20px rgba(0, 0, 0, 0.32);
+  --shadow-floating: 0 -4px 24px rgba(0, 0, 0, 0.35);
+
+  --glass: rgba(29, 33, 31, 0.72);
+  --glass-fallback: #1d211f;
+
+  --gradient-today: linear-gradient(135deg, #2a3833 0%, #242b28 100%);
+  --gradient-primary: linear-gradient(180deg, #8bb9ac 0%, #7faea1 100%);
+  --gradient-home-glow: radial-gradient(
+    ellipse 80% 50% at 50% -10%,
+    rgba(42, 56, 51, 0.55),
+    transparent 70%
+  );
 
   color-scheme: dark;
 }
 
-/* Manual light override when OS is dark */
 html.light {
   --background: #f7f5f0;
   --surface: #ffffff;
@@ -129,6 +177,7 @@ html.light {
 
   --primary: #5f8a7e;
   --primary-pressed: #4c7265;
+  --primary-top: #649183;
   --brand-tint: #cfe0dd;
   --accent-cream: #f1ede2;
   --header-pill: #f1ede2;
@@ -152,6 +201,20 @@ html.light {
   --danger-text: #7c2f27;
 
   --border: #e5e3dc;
+  --shadow-soft: 0 2px 12px rgba(26, 29, 28, 0.06);
+  --shadow-raised: 0 6px 20px rgba(26, 29, 28, 0.1);
+  --shadow-floating: 0 -4px 24px rgba(26, 29, 28, 0.08);
+
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-fallback: #ffffff;
+
+  --gradient-today: linear-gradient(135deg, #cfe0dd 0%, #eaf1ef 100%);
+  --gradient-primary: linear-gradient(180deg, #649183 0%, #5f8a7e 100%);
+  --gradient-home-glow: radial-gradient(
+    ellipse 80% 50% at 50% -10%,
+    rgba(207, 224, 221, 0.45),
+    transparent 70%
+  );
 
   color-scheme: light;
 }
@@ -170,6 +233,43 @@ body {
   color: var(--text-primary);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Glass chrome — solid fallback, then translucent + blur when supported */
+.app-glass {
+  background-color: var(--glass-fallback);
+  border-color: var(--border);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .app-glass {
+    background-color: var(--glass);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+}
+
+/* Dimensional primary fill — gradient + 1px lighter top edge */
+.btn-primary-fill {
+  background-image: var(--gradient-primary);
+  background-color: var(--primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  color: var(--text-on-primary);
+}
+
+html.dark .btn-primary-fill {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light) .btn-primary-fill {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+}
+
+.btn-primary-fill:active:not(:disabled) {
+  background-image: none;
+  background-color: var(--primary-pressed);
 }
 
 main a.underline,

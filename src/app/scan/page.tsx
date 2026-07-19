@@ -118,7 +118,7 @@ function PersonLibrary({ person, meds }: { person: string; meds: Medication[] })
         {meds.map((med) => (
           <li
             key={med.id}
-            className="rounded-2xl bg-[var(--surface)] px-4 py-3.5 shadow-sm shadow-black/[0.04]"
+            className="rounded-2xl bg-[var(--surface)] px-4 py-3.5 shadow-[var(--shadow-soft)]"
           >
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-semibold text-[var(--text-primary)]">

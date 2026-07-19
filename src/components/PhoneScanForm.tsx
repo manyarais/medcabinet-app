@@ -127,7 +127,7 @@ export function PhoneScanForm() {
   const nextHint = SHOT_HINTS[Math.min(photos.length, SHOT_HINTS.length - 1)];
 
   return (
-    <div className="mt-3 flex flex-col gap-3 rounded-2xl bg-[var(--surface)] p-4 shadow-sm shadow-black/[0.04]">
+    <div className="mt-3 flex flex-col gap-3 rounded-2xl bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)]">
       <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
         No hardware? Scan with this device&apos;s camera: take {TARGET_PHOTOS}{" "}
         photos, rotating the bottle between shots so every side of the label
@@ -179,7 +179,7 @@ export function PhoneScanForm() {
           <button
             onClick={handleSubmit}
             disabled={isReading}
-            className="min-h-12 flex-1 rounded-2xl bg-[var(--primary)] px-4 text-base font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-[0.99] disabled:opacity-50"
+            className="min-h-12 flex-1 rounded-2xl btn-primary-fill px-4 text-base font-semibold transition duration-150 ease-out active:scale-[0.99] disabled:opacity-50"
           >
             {isReading
               ? "Reading label…"

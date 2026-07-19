@@ -73,7 +73,7 @@ export function CabinetJumpSearch({ medications }: Props) {
       </form>
 
       {isOpen && query.trim() && (
-        <ul className="absolute z-10 mt-2 max-h-64 w-full overflow-auto rounded-2xl bg-[var(--surface)] py-1 shadow-lg shadow-black/10">
+        <ul className="absolute z-10 mt-2 max-h-64 w-full overflow-auto rounded-2xl bg-[var(--surface)] py-1 shadow-[var(--shadow-raised)]">
           {matches.length === 0 ? (
             <li className="px-4 py-3 text-sm text-[var(--text-secondary)]">
               No match in your cabinet.

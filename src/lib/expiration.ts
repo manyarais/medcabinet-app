@@ -5,7 +5,7 @@
 export type ExpiryStatus = "expired" | "soon" | "ok" | "unknown";
 
 /** Days before expiry that counts as "expiring soon". */
-export const SOON_DAYS = 60;
+export const SOON_DAYS = 90;
 
 const MONTHS: Record<string, number> = {
   jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
@@ -65,9 +65,46 @@ export function parseExpiration(raw: string | null | undefined): Date | null {
 export function expiryStatusFor(raw: string | null | undefined): ExpiryStatus {
   const date = parseExpiration(raw);
   if (!date) return "unknown";
+  return expiryStatusForDate(date);
+}
+
+function expiryStatusForDate(date: Date): ExpiryStatus {
   const now = new Date();
   if (date < now) return "expired";
   const soonCutoff = new Date(now.getTime() + SOON_DAYS * 24 * 60 * 60 * 1000);
   if (date <= soonCutoff) return "soon";
   return "ok";
+}
+
+export type EffectiveExpiryInput = {
+  expirationDate: string | null | undefined;
+  productType: string;
+  /** YYYY-MM-DD prescription end dates (Rx only). */
+  prescriptionEndDates?: string[];
+};
+
+/**
+ * Effective expiry for bucketing: OTC uses label date; Rx uses the earlier of
+ * label expiry vs earliest prescription end date.
+ */
+export function effectiveExpiryForMedication(
+  input: EffectiveExpiryInput,
+): { status: ExpiryStatus; displayDate: string | null } {
+  const labelDate = parseExpiration(input.expirationDate);
+  let best: Date | null = labelDate;
+  let displayDate: string | null = input.expirationDate?.trim() || null;
+
+  if (input.productType === "PRESCRIPTION" && input.prescriptionEndDates?.length) {
+    for (const end of input.prescriptionEndDates) {
+      const endDate = parseExpiration(end);
+      if (!endDate) continue;
+      if (!best || endDate < best) {
+        best = endDate;
+        displayDate = end;
+      }
+    }
+  }
+
+  if (!best) return { status: "unknown", displayDate };
+  return { status: expiryStatusForDate(best), displayDate };
 }

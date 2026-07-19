@@ -2,10 +2,15 @@
 // Disposal keeps an audit record but frees the compartment.
 
 import { DisposeButton } from "@/components/DisposeButton";
+import { MedMetaChips } from "@/components/MedMetaChips";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
-import { expiryStatusFor, SOON_DAYS, type ExpiryStatus } from "@/lib/expiration";
+import {
+  effectiveExpiryForMedication,
+  SOON_DAYS,
+  type ExpiryStatus,
+} from "@/lib/expiration";
 import type { Medication } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +26,7 @@ export default async function ExpiryPage() {
   const meds = await prisma.medication.findMany({
     where: { status: "active" },
     orderBy: { brandName: "asc" },
+    include: { prescriptions: { select: { endDate: true } } },
   });
   const disposed = await prisma.medication.findMany({
     where: { status: "disposed" },
@@ -28,11 +34,16 @@ export default async function ExpiryPage() {
     take: 10,
   });
 
-  const byStatus = new Map<ExpiryStatus, Medication[]>();
+  type Row = Medication & { displayDate: string | null };
+  const byStatus = new Map<ExpiryStatus, Row[]>();
   for (const med of meds) {
-    const status = expiryStatusFor(med.expirationDate);
+    const { status, displayDate } = effectiveExpiryForMedication({
+      expirationDate: med.expirationDate,
+      productType: med.productType,
+      prescriptionEndDates: med.prescriptions.map((rx) => rx.endDate),
+    });
     const list = byStatus.get(status) ?? [];
-    list.push(med);
+    list.push({ ...med, displayDate });
     byStatus.set(status, list);
   }
 
@@ -66,7 +77,7 @@ export default async function ExpiryPage() {
               {list.map((med) => (
                 <li
                   key={med.id}
-                  className={`rounded-2xl px-4 py-3.5 shadow-sm shadow-black/[0.04] ${
+                  className={`rounded-2xl px-4 py-3.5 shadow-[var(--shadow-soft)] ${
                     status === "expired"
                       ? "bg-[var(--danger-bg)]"
                       : status === "soon"
@@ -78,13 +89,15 @@ export default async function ExpiryPage() {
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-[var(--text-primary)]">
                         {med.brandName}
-                        <span className="ml-2 font-normal text-[var(--text-secondary)]">
-                          {med.personName ?? "Household"}
-                          {med.compartment != null && ` · ${med.compartment}`}
-                        </span>
                       </p>
-                      <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-                        Expires {med.expirationDate ?? "unknown"}
+                      <div className="mt-1.5">
+                        <MedMetaChips
+                          personName={med.personName}
+                          compartment={med.compartment}
+                        />
+                      </div>
+                      <p className="mt-1.5 text-xs text-[var(--text-secondary)]">
+                        Expires {med.displayDate ?? "unknown"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

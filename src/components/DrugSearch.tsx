@@ -163,8 +163,8 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
             disabled={cabinetLoading || fdaLoading || !query.trim()}
             className={
               variant === "pill"
-                ? "inline-flex min-h-12 min-w-12 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] active:scale-95 disabled:opacity-50"
-                : "shrink-0 rounded-lg bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-[var(--text-on-primary)] disabled:opacity-50"
+                ? "inline-flex min-h-12 min-w-12 shrink-0 items-center justify-center btn-primary-fill rounded-full text-sm font-semibold transition duration-150 ease-out active:scale-95 disabled:opacity-50"
+                : "btn-primary-fill shrink-0 rounded-lg px-4 py-3 text-sm font-semibold transition duration-150 ease-out active:scale-[0.98] disabled:opacity-50"
             }
           >
             {cabinetLoading || fdaLoading ? "…" : variant === "pill" ? "Go" : "Search"}

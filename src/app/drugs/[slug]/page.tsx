@@ -141,7 +141,7 @@ export default async function DrugDetailPage({ params, searchParams }: PageProps
           </header>
 
           {showCatalogAddFirst && (
-            <div className="rounded-2xl bg-[var(--surface)] p-1 shadow-sm shadow-black/[0.04] ring-2 ring-[var(--primary)]">
+            <div className="rounded-2xl bg-[var(--surface)] p-1 shadow-[var(--shadow-soft)] ring-2 ring-[var(--primary)]">
               <AddToCabinetForm drug={displayDrug} occupied={occupied} />
             </div>
           )}
@@ -203,7 +203,7 @@ function CabinetBadge({
 
 function DetailSection({ title, body }: { title: string; body: string | null }) {
   return (
-    <section className="rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-sm shadow-black/[0.04]">
+    <section className="rounded-2xl border border-[var(--border)]/60 bg-[var(--surface)] px-4 py-4 shadow-[var(--shadow-soft)]">
       <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
         {title}
       </h2>

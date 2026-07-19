@@ -1,16 +1,21 @@
-import { Card } from "@/components/ui/Card";
+import Link from "next/link";
 import type { TodayDoseSummary } from "@/lib/homeDashboard";
 
 type Props = {
   summaries: TodayDoseSummary[];
 };
 
+/** Home hero — soft sage diagonal gradient only (reserved effect). */
 export function HomeTodayCard({ summaries }: Props) {
   return (
-    <Card href="/calendar" tinted className="border border-[var(--brand-tint)] p-5">
+    <Link
+      href="/calendar"
+      className="block w-full rounded-2xl border border-[var(--brand-tint)]/50 p-5 shadow-[var(--shadow-soft)] transition duration-150 ease-out active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+      style={{ background: "var(--gradient-today)" }}
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-cream)]">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--surface)]/70">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
               <rect
                 x="3"
@@ -55,6 +60,6 @@ export function HomeTodayCard({ summaries }: Props) {
           ))}
         </ul>
       )}
-    </Card>
+    </Link>
   );
 }

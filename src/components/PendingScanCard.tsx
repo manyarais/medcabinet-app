@@ -120,7 +120,7 @@ export function PendingScanCard({
   }
 
   return (
-    <div className="rounded-2xl bg-[var(--warning-bg)] p-4 shadow-sm shadow-black/[0.04]">
+    <div className="rounded-2xl bg-[var(--warning-bg)] p-4 shadow-[var(--shadow-soft)]">
       <p className="text-sm font-semibold text-[var(--warning-text)]">
         Review this scan — check the fields against the photos, fix anything
         the AI got wrong, then confirm.
@@ -197,7 +197,7 @@ export function PendingScanCard({
         <button
           onClick={() => confirm(true)}
           disabled={busy}
-          className="min-h-11 flex-1 rounded-2xl bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--text-on-primary)] transition duration-150 active:bg-[var(--primary-pressed)] disabled:opacity-50"
+          className="min-h-11 flex-1 rounded-2xl btn-primary-fill px-4 text-sm font-semibold transition duration-150 ease-out disabled:opacity-50"
         >
           Confirm & assign a bay
         </button>

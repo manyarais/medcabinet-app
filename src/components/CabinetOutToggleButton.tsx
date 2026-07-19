@@ -50,7 +50,7 @@ export function CabinetOutToggleButton({
         aria-label={`${outOfCabinet ? "Put back" : "Take out"} ${brandName}`}
         className={`inline-flex min-h-8 w-full items-center justify-center rounded-full px-2.5 text-[11px] font-semibold transition duration-150 active:scale-95 disabled:opacity-50 ${
           outOfCabinet
-            ? "bg-[var(--primary)] text-[var(--text-on-primary)]"
+            ? "btn-primary-fill"
             : "bg-[var(--accent-cream)] text-[var(--text-primary)]"
         }`}
       >

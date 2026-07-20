@@ -1,5 +1,9 @@
 // App settings — preferences, tools, demo.
 
+// Match the other pages: skip static prerender (it trips a Next 16.2.10
+// workStore invariant during `next build` on this page).
+export const dynamic = "force-dynamic";
+
 import { CallReminderPanel } from "@/components/CallReminderPanel";
 import { DemoResetButton } from "@/components/DemoResetButton";
 import { DoseReminderToggle } from "@/components/DoseReminderToggle";

@@ -192,6 +192,8 @@ Use this table whenever you’re unsure. Recommendations are starters — you ch
 | Scanner in UI | Mentioned before `/api/scan` exists | Be honest: hide or “coming soon” until real | Keep card; partner-owned dead-end for now | 2026-07-19 |
 | Reminders/Twilio | Stretch / present in code | Optional pride feature; don’t let it steal the hero story | Settings stays in nav; due-dose banner backstage | 2026-07-19 |
 | Feeling/tone | Not specified | Calm, clear, trustworthy | Defer visual identity | 2026-07-19 |
+| Public OTC label search + Amazon | Not built | Low-risk reference search behind flag OFF; see `OTC_LABEL_SEARCH_SPEC.md` | **Manya implements next session**; teachers can leave flag off | 2026-07-20 |
+| Google / user auth | Out of PRD | Skip for demo — not worth it | Leave out | 2026-07-20 |
 
 ---
 

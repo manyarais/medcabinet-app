@@ -154,6 +154,38 @@ I will decide. Do not code yet.
 
 ---
 
+## 11) MUST IMPLEMENT NEXT SESSION — OTC label search (flag default OFF)
+
+Use after `git pull`. Full brief: `docs/MANYA_NEXT_SESSION.md` + `docs/OTC_LABEL_SEARCH_SPEC.md`.
+
+```text
+Read and obey:
+- docs/MANYA_NEXT_SESSION.md
+- docs/OTC_LABEL_SEARCH_SPEC.md
+- docs/PRODUCT_RULES.md
+- docs/TECH_GUARDRAILS.md
+
+Task: Implement the OTC public label search feature exactly as specified in OTC_LABEL_SEARCH_SPEC.md.
+
+Hard requirements:
+- Feature flag NEXT_PUBLIC_ENABLE_OTC_MARKET_LABEL_SEARCH defaults to false / unset = OFF
+- When OFF: no nav entry, no home shortcut, /labels not advertised (404 or redirect OK)
+- When ON: /labels works as reference label search (not recommendations)
+- openFDA OTC-only; verbatim excerpts; source + match reason on every card
+- Strong not-medical-advice / not-a-recommendation copy
+- Amazon = "View on Amazon" secondary button + leave-app confirm; deep-link search only
+- No auth / Google login
+- No ranking by effectiveness; no "best for" / "recommended" language
+- Fail closed if openFDA errors — never invent matches
+- Mobile ~390px
+
+First: list files you will create/change and acceptance checks.
+Wait for my OK, then implement.
+When done: tell me how to verify with flag OFF and flag ON.
+```
+
+---
+
 ## Tips for her (so creativity doesn’t disappear)
 
 - Use explore prompts (#4, #6) before implement prompts (#5).

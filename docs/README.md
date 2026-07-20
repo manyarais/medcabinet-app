@@ -5,6 +5,15 @@ These docs help the team (and Cursor) raise product quality **without replacing 
 They are based on `PRD.md`, then expanded with coaching questions and recommendations.  
 **Final product decisions belong to the student product lead and team.**
 
+## Start here next Cursor session (Manya)
+
+1. Read **`MANYA_NEXT_SESSION.md`** — must-do handoff (low-risk OTC label search).
+2. Read **`OTC_LABEL_SEARCH_SPEC.md`** — full UX + implementation spec.
+3. Paste the build prompt from that brief (also in `PROMPT_PACK.md` #11).
+4. Implement **behind the feature flag (default OFF)** so teachers can veto safely.
+
+Dad checked in the docs only — **you implement the feature** when you’re next on.
+
 ## How to use these docs
 
 1. Fill the open questions in `VISION.md` and `DEMO_SCRIPT.md` in your own words.
@@ -16,6 +25,8 @@ They are based on `PRD.md`, then expanded with coaching questions and recommenda
 
 | Order | Doc | Purpose |
 |------:|-----|---------|
+| 0 | `MANYA_NEXT_SESSION.md` | **Next session must-do** — OTC label search handoff |
+| 0b | `OTC_LABEL_SEARCH_SPEC.md` | Full UX, risk analysis, flag, implementation plan |
 | 1 | `VISION.md` | What this product is becoming (her words + coaching prompts) |
 | 2 | `DEMO_SCRIPT.md` | The showcase path worth polishing |
 | 3 | `PRODUCT_RULES.md` | Experience quality bar (enhancing, not cage-like) |
@@ -25,7 +36,7 @@ They are based on `PRD.md`, then expanded with coaching questions and recommenda
 | 7 | `AUDIT_SCORECARD.md` | Product / tech / capability audits |
 | 8 | `EXPERIENCE_AUDIT_2026-07-19.md` | Completed CCO/CXO/CPO audit of the running app |
 | 9 | `EXPERIENCE_UPLIFT_PLAN.md` | Findings → concrete, prompt-ready specs to reach a 9–10 experience |
-| 10 | `TEST_PLAN.md` | What to test, in what order, and how you’d know it passes (no tests exist yet) |
+| 10 | `TEST_PLAN.md` | What to test, in what order, and how you’d know it passes |
 
 ## Conflict guidance
 

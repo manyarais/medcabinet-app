@@ -52,9 +52,10 @@ Fill **Owner**, **Her note**, and adjust Showcase role as the team decides.
 | Scanner CTA in UI | home card copy | Partial / Not built | Future or Hide | | Honesty check |
 | Hardware `POST /api/scan` | PRD §6 | Not built | Future | | |
 | Scan pending review flow | schema has `pending_review` | Not built | Future | | |
-| Auth / multi-user | — | Out | Out | | |
+| Auth / multi-user | — | Out | Out | | Not worth it for demo |
 | Push notifications | — | Out | Out | | |
 | Rx recommendations for symptoms | — | Out (safety) | Out | | |
+| Public OTC label search + Amazon hop | Spec: `OTC_LABEL_SEARCH_SPEC.md` | **Not built** | Future / flag-gated | Manya | **Implement next session** behind flag OFF; teacher veto = leave off |
 
 ---
 
@@ -97,9 +98,9 @@ Park ideas here so they don’t get lost — and don’t sneak into the build wi
 
 | Idea | Why it’s exciting | Risk | Decision (Now / After showcase / Never) |
 |------|-------------------|------|-----------------------------------------|
-| Order / buy when a searched med isn’t in the cabinet | Closes the loop when inventory is empty | Shopping + liability; keep OTC-only, user-picked products (not symptom→recommend) | After showcase |
-| Symptom → “meds that help” → order | Feels magical | High — reads as medical recommendation / FDA risk | Never for showcase; revisit only with legal + OTC catalog framing |
-| | | | |
+| Public OTC **label** search + Amazon hop (flagged) | High value; teacher-safe if flag OFF | Lower if reference-not-recommendation (see `OTC_LABEL_SEARCH_SPEC.md`) | **Now — Manya next session** (flag default OFF) |
+| Symptom → “meds that help” → in-app recommend/order | Feels magical | High — medical recommendation | Never for showcase |
+| Google / user auth | Multi-user polish | Overkill for demo | Never for this demo |
 
 ### Prompts to fill the parking lot
 - What would make the cabinet feel alive on screen?

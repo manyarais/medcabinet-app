@@ -1,5 +1,8 @@
 # Demo script (draft — make it yours)
 
+> **Competition playbook:** see `docs/COMPETITION_WIN_PLAN.md` for the winning on-stage set,
+> beyond-app checklist, and what to keep backstage. Keep this script aligned with that plan.
+>
 > Goal: a ~90 second story that always works.  
 > Polish the path below before inventing new paths.  
 > Creative presentation is encouraged; unreliable tangents are not.

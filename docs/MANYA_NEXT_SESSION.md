@@ -2,47 +2,83 @@
 
 **From:** Dad (product coach)  
 **To:** Manya (product lead)  
-**Status:** Docs checked in on `main` — **you implement next time you’re in Cursor**  
-**Dad is not building the app code** — this brief + the full spec are your handoff.
+**Status:** Docs on `main` — **read these first next time you’re in Cursor**  
+**Dad is not building the app code** — these briefs are your handoff.
 
 ---
 
-## What we found
+## Priority order (do not skip #1)
 
-A **super low-risk, high-value** feature:
+### 1) Win the competition first — `docs/COMPETITION_WIN_PLAN.md`
+**This is the most important doc for showcase week.**
 
-> **Search public OTC product labels** (openFDA) by a symptom *word*, show **honest source attribution + disclaimers**, and optionally let the user **View on Amazon** (they leave Pillio).  
-> This is **label reference search**, not “Pillio recommends a drug.”
+- What to product **on stage** (P0/P1) vs backstage  
+- 90-second winning script  
+- Prototype polish order (hero → expiry → demo ops)  
+- **Beyond the app:** pitch, hardware theater, teacher trust language, team roles, rehearsal checklist  
+- Reminder: judges reward a reliable wow, not more pages  
 
-Teachers worried about symptom → medication recommendations. This approach **reduces that risk a lot** by:
+**Winning sentence to memorize:**  
+> “I feel something → Pillio finds what I already own from the FDA label → shows the exact compartment → the cabinet lights up.”
 
-- Searching **official FDA label text** (not inventing advice)
-- Saying clearly: **not medical advice / not a recommendation**
-- Showing **where the data came from** on every result
-- Making Amazon a **secondary external hop** (Pillio doesn’t sell or ship medicine)
-- Shipping behind a **feature flag that defaults OFF**
+**Product the demo as:** medicine cabinet OS (location + freshness).  
+**Not as:** doctor / recommender / pharmacy marketplace.
 
-If a teacher doesn’t like it: **leave the flag off**. Zero demo risk. Enabling later is one env flip after they approve the framing — not a rewrite.
+### 2) Then — low-risk market label feature — `docs/OTC_LABEL_SEARCH_SPEC.md`
+Super low-risk **public OTC label search** + optional Amazon hop, behind feature flag **default OFF**.
+
+- Teachers can leave it **off** — zero demo risk  
+- Implement only after hero path is rehearsal-solid (or in parallel *behind the flag* without putting it on stage)  
+- Full UX + implementation details in the spec  
+- Build prompt in § below and `PROMPT_PACK.md` #11  
+
+### 3) Do not build for demo
+- Google / user authentication — not worth it  
+- Symptom → “recommended drugs to buy” without the label-reference framing  
+- More Twilio/reminder complexity as the lead story  
 
 ---
 
 ## What you must do next session
 
-1. `git pull origin main`
-2. Read this file, then **`docs/OTC_LABEL_SEARCH_SPEC.md`** (full UX + implementation)
-3. In Cursor, paste the prompt in § “First prompt to paste” below
-4. Implement **behind the flag, default OFF**
-5. Do **not** add Google/login auth (not worth it for the demo)
-6. When done: verify flag OFF hides the feature; flag ON shows `/labels` with sources + Amazon confirm
+1. `git pull origin main`  
+2. Read **`COMPETITION_WIN_PLAN.md`** (win plan + beyond-app)  
+3. Read **`OTC_LABEL_SEARCH_SPEC.md`** (flagged feature when you’re ready)  
+4. Choose path for this session:  
+   - **A (recommended before showcase):** polish P0/P1 hero + expiry using the competition plan prompts  
+   - **B:** implement OTC label search behind flag OFF (prompt below)  
+5. Update `DEMO_SCRIPT.md` if your on-stage path changed  
+6. Rehearse until two clean runs in a row  
 
 ---
 
-## First prompt to paste into Cursor
+## Prompt A — polish to win (use this before adding features)
+
+```text
+Read and obey:
+- docs/COMPETITION_WIN_PLAN.md
+- docs/DEMO_SCRIPT.md
+- docs/PRODUCT_RULES.md
+
+Task: Polish ONLY the competition P0/P1 path.
+- Symptoms → OTC cabinet label match → compartment clarity → flash if present
+- Expiry soon/expired clarity
+- Trust copy: not medical advice; label match in your cabinet
+No new features. Keep OTC market/Amazon flag OFF / unadvertised.
+Mobile ~390px.
+First: list files + acceptance checks. Wait for OK, then implement.
+When done: give me the exact 90s demo taps to rehearse.
+```
+
+---
+
+## Prompt B — implement OTC label search (flag default OFF)
 
 ```text
 Read and obey:
 - docs/MANYA_NEXT_SESSION.md
 - docs/OTC_LABEL_SEARCH_SPEC.md
+- docs/COMPETITION_WIN_PLAN.md
 - docs/PRODUCT_RULES.md
 - docs/TECH_GUARDRAILS.md
 
@@ -59,33 +95,38 @@ Hard requirements:
 - No ranking by effectiveness; no "best for" / "recommended" language
 - Fail closed if openFDA errors — never invent matches
 - Mobile ~390px
+- Do not put this on the competition demo path unless teachers approved and flag is intentionally ON
 
 First: list files you will create/change and acceptance checks.
 Wait for my OK, then implement.
 When done: tell me how to verify with flag OFF and flag ON.
 ```
 
-(Also in `docs/PROMPT_PACK.md` as the must-implement prompt.)
+---
+
+## Why the market label approach is still recommended (when you have time)
+
+Teachers worried about symptom → medication recommendations. The spec reduces that risk by:
+
+- Searching **official FDA label text** (not inventing advice)  
+- Saying clearly: **not medical advice / not a recommendation**  
+- Showing **where the data came from** on every result  
+- Making Amazon a **secondary external hop**  
+- Shipping behind a **feature flag that defaults OFF**  
+
+If a teacher doesn’t like it: **leave the flag off**. Enabling later is one env flip — not a rewrite.
 
 ---
 
-## Why this is high value
+## Definition of “ready to compete”
 
-- Keeps a “symptom word → useful OTC info” story for demos **if teachers allow it**
-- Stays honest about sources (openFDA)
-- Optional Amazon path without Pillio becoming a pharmacy
-- Flag = easy teacher veto without deleting code
-
----
-
-## Definition of done (your checklist)
-
-- [ ] Spec implemented behind flag (default OFF)
-- [ ] `/labels` UX matches the spec (disclaimer, source, match reason, warnings entry, Amazon confirm)
-- [ ] OTC-only; no Rx in results
-- [ ] Tests or clear manual checks for flag OFF / ON + OTC-only + fail-closed
-- [ ] README or `.env.example` documents the flag
-- [ ] School demo script can run with flag **OFF** safely
+- [ ] P0 hero path works cold twice in a row  
+- [ ] Trust language clean (no “recommended for headache”)  
+- [ ] Expiry second punch works  
+- [ ] Hardware flash or backup line ready  
+- [ ] Roles assigned (Narrator / Driver / Hardware / Watcher)  
+- [ ] Market label flag OFF for showcase (unless teacher OK in writing)  
+- [ ] Team can say the winning sentence without notes  
 
 ---
 
@@ -93,7 +134,8 @@ When done: tell me how to verify with flag OFF and flag ON.
 
 | Doc | Why |
 |-----|-----|
-| `docs/OTC_LABEL_SEARCH_SPEC.md` | Full UX, risk analysis, implementation plan |
+| `docs/COMPETITION_WIN_PLAN.md` | **Win playbook** — demo, roadmap, beyond-app |
+| `docs/OTC_LABEL_SEARCH_SPEC.md` | Flagged label search UX + implementation |
+| `docs/DEMO_SCRIPT.md` | Keep in sync with on-stage path |
 | `docs/PRODUCT_RULES.md` | Must: not a doctor; reference not recommendation |
-| `docs/CAPABILITIES.md` | Inventory row for this capability |
-| `docs/PROMPT_PACK.md` | Copy-paste build prompt |
+| `docs/PROMPT_PACK.md` | Prompts #11 (labels) + #12 (win polish) |

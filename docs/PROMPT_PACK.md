@@ -154,7 +154,29 @@ I will decide. Do not code yet.
 
 ---
 
-## 11) MUST IMPLEMENT NEXT SESSION — OTC label search (flag default OFF)
+## 12) MUST DO FOR COMPETITION — polish P0/P1 win path (no new features)
+
+Use with `docs/COMPETITION_WIN_PLAN.md`. Prefer this before building net-new features near showcase.
+
+```text
+Read and obey:
+- docs/COMPETITION_WIN_PLAN.md
+- docs/DEMO_SCRIPT.md
+- docs/PRODUCT_RULES.md
+
+Task: Polish ONLY the competition P0/P1 path.
+- Symptoms → OTC cabinet label match → compartment clarity → flash if present
+- Expiry soon/expired clarity
+- Trust copy: not medical advice; label match in your cabinet
+No new features. Keep OTC market/Amazon flag OFF / unadvertised.
+Mobile ~390px.
+First: list files + acceptance checks. Wait for OK, then implement.
+When done: give me the exact 90s demo taps to rehearse.
+```
+
+---
+
+## 11) MUST IMPLEMENT (after hero solid, or behind flag) — OTC label search (flag default OFF)
 
 Use after `git pull`. Full brief: `docs/MANYA_NEXT_SESSION.md` + `docs/OTC_LABEL_SEARCH_SPEC.md`.
 

@@ -7,12 +7,12 @@ They are based on `PRD.md`, then expanded with coaching questions and recommenda
 
 ## Start here next Cursor session (Manya)
 
-1. Read **`MANYA_NEXT_SESSION.md`** — must-do handoff (low-risk OTC label search).
-2. Read **`OTC_LABEL_SEARCH_SPEC.md`** — full UX + implementation spec.
-3. Paste the build prompt from that brief (also in `PROMPT_PACK.md` #11).
-4. Implement **behind the feature flag (default OFF)** so teachers can veto safely.
+1. Read **`COMPETITION_WIN_PLAN.md`** — how to win (on-stage features, 90s script, beyond-app).
+2. Read **`MANYA_NEXT_SESSION.md`** — must-do order: win polish first, then flagged OTC labels.
+3. Read **`OTC_LABEL_SEARCH_SPEC.md`** when implementing the low-risk market label feature (flag default OFF).
+4. Use prompts in `PROMPT_PACK.md` (#12 win polish, #11 label search).
 
-Dad checked in the docs only — **you implement the feature** when you’re next on.
+Dad checked in the docs only — **you and the team execute**. Prefer rehearsing the hero over adding pages.
 
 ## How to use these docs
 
@@ -25,8 +25,9 @@ Dad checked in the docs only — **you implement the feature** when you’re nex
 
 | Order | Doc | Purpose |
 |------:|-----|---------|
-| 0 | `MANYA_NEXT_SESSION.md` | **Next session must-do** — OTC label search handoff |
-| 0b | `OTC_LABEL_SEARCH_SPEC.md` | Full UX, risk analysis, flag, implementation plan |
+| 0 | `COMPETITION_WIN_PLAN.md` | **How to win** — demo set, roadmap, beyond-app checklist |
+| 0a | `MANYA_NEXT_SESSION.md` | Next session must-do order + Cursor prompts |
+| 0b | `OTC_LABEL_SEARCH_SPEC.md` | Flagged OTC label search — full UX + implementation |
 | 1 | `VISION.md` | What this product is becoming (her words + coaching prompts) |
 | 2 | `DEMO_SCRIPT.md` | The showcase path worth polishing |
 | 3 | `PRODUCT_RULES.md` | Experience quality bar (enhancing, not cage-like) |

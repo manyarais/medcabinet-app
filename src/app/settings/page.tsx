@@ -1,9 +1,10 @@
-// App settings — preferences only (appearance, reminders, demo).
+// App settings — preferences, tools, demo.
 
 import { CallReminderPanel } from "@/components/CallReminderPanel";
 import { DemoResetButton } from "@/components/DemoResetButton";
 import { DoseReminderToggle } from "@/components/DoseReminderToggle";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function SettingsPage() {
@@ -11,7 +12,7 @@ export default function SettingsPage() {
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-6">
       <PageHeader
         title="Settings"
-        subtitle="Appearance and reminders. Reminder only — not medical advice."
+        subtitle="Appearance, reminders, and tools."
       />
 
       <section className="flex flex-col gap-3">
@@ -27,6 +28,18 @@ export default function SettingsPage() {
         </h2>
         <DoseReminderToggle />
         <CallReminderPanel />
+      </section>
+
+      <section className="mt-8 flex flex-col gap-3">
+        <h2 className="px-0.5 text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+          Tools
+        </h2>
+        <Card href="/activity" className="flex flex-col gap-0.5 p-4">
+          <p className="text-[16px] font-semibold text-[var(--text-primary)]">Activity</p>
+          <p className="text-sm text-[var(--text-secondary)]">
+            Scans, flashes, and cabinet changes
+          </p>
+        </Card>
       </section>
 
       <section className="mt-8 flex flex-col gap-3">

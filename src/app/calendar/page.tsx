@@ -1,6 +1,6 @@
-// Prescription calendar.
+// Prescription calendar + add reminder schedule.
 
-import { PrescriptionCalendar } from "@/components/PrescriptionCalendar";
+import { CalendarWorkspace } from "@/components/CalendarWorkspace";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { isValidDateString, todayLocal } from "@/lib/dates";
 import Link from "next/link";
@@ -31,7 +31,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
           Reminders
         </Link>
       </div>
-      <PrescriptionCalendar initialDate={initialDate} />
+      <CalendarWorkspace initialDate={initialDate} />
     </main>
   );
 }

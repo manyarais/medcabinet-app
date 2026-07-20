@@ -2,9 +2,9 @@
 
 import {
   dayBoundsLocal,
-  isDateInInclusiveRange,
   todayLocal,
 } from "@/lib/dates";
+import { isActiveScheduleOnDate } from "@/lib/calendarSchedule";
 import { doseUrgency, parseDoseTimes } from "@/lib/doseTimes";
 import { prisma } from "@/lib/db";
 
@@ -24,12 +24,8 @@ export async function listOverdueDosesToday(now = new Date()): Promise<OverdueDo
     orderBy: [{ startDate: "asc" }, { id: "asc" }],
   });
 
-  const active = prescriptions.filter(
-    (rx) =>
-      rx.medication.status === "active" &&
-      rx.medication.productType === "PRESCRIPTION" &&
-      rx.medication.compartment != null &&
-      isDateInInclusiveRange(date, rx.startDate, rx.endDate),
+  const active = prescriptions.filter((rx) =>
+    isActiveScheduleOnDate(rx, date),
   );
 
   const medicationIds = [...new Set(active.map((rx) => rx.medicationId))];

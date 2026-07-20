@@ -3,10 +3,10 @@
 
 import {
   dayBoundsLocal,
-  isDateInInclusiveRange,
   isValidDateString,
   todayLocal,
 } from "@/lib/dates";
+import { isActiveScheduleOnDate } from "@/lib/calendarSchedule";
 import { parseDoseTimes } from "@/lib/doseTimes";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
@@ -41,13 +41,9 @@ export async function GET(request: NextRequest) {
     orderBy: [{ startDate: "asc" }, { id: "asc" }],
   });
 
-  // Only doses for Rx meds that are actually in a cabinet bay.
-  const active = prescriptions.filter(
-    (rx) =>
-      rx.medication.status === "active" &&
-      rx.medication.productType === "PRESCRIPTION" &&
-      rx.medication.compartment != null &&
-      isDateInInclusiveRange(dateParam, rx.startDate, rx.endDate),
+  // Any active med with a schedule for this day (Rx, OTC, bay optional).
+  const active = prescriptions.filter((rx) =>
+    isActiveScheduleOnDate(rx, dateParam),
   );
 
   const { start, end } = dayBoundsLocal(dateParam);

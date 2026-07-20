@@ -3,9 +3,9 @@
 import { getAttentionSnapshot } from "@/lib/attention";
 import {
   dayBoundsLocal,
-  isDateInInclusiveRange,
   todayLocal,
 } from "@/lib/dates";
+import { isActiveScheduleOnDate } from "@/lib/calendarSchedule";
 import { prisma } from "@/lib/db";
 
 export type TodayDoseSummary = {
@@ -43,12 +43,8 @@ export async function getHomeDashboardData(): Promise<HomeDashboardData> {
     getAttentionSnapshot(),
   ]);
 
-  const active = prescriptions.filter(
-    (rx) =>
-      rx.medication.status === "active" &&
-      rx.medication.productType === "PRESCRIPTION" &&
-      rx.medication.compartment != null &&
-      isDateInInclusiveRange(today, rx.startDate, rx.endDate),
+  const active = prescriptions.filter((rx) =>
+    isActiveScheduleOnDate(rx, today),
   );
 
   const medicationIds = [...new Set(active.map((rx) => rx.medicationId))];

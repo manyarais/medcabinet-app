@@ -43,7 +43,8 @@ Fill **Owner**, **Her note**, and adjust Showcase role as the team decides.
 | Take this + usage history | take + history APIs | Works | Hero | | |
 | Seeded demo cabinet | `prisma/seed.ts` | Works | Core | | |
 | Prescription schedules | prescriptions + forms | Stretch | Optional | | |
-| Calendar dose checkoff | `/calendar` | Stretch | Optional | | |
+| Calendar dose checkoff | `/calendar` | Works | Support | | Includes home checklist |
+| Calendar add reminder schedule | `AddCalendarScheduleForm`, `POST /api/calendar/schedule` | Works | Support | | Pick a cabinet med/module and set times |
 | Due-dose banner | `DueDosesBanner` | Stretch / Hide | Optional / Hide | | Hidden from layout for demo freeze |
 | Browser dose notifications | settings toggle | Stretch | Hide unless stable | | |
 | Phone call reminders (Twilio) | settings + dispatch | Stretch | Hide unless rehearsed | | |

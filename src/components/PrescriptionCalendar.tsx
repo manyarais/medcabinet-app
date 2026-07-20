@@ -58,6 +58,8 @@ type MonthResponse = {
 
 type Props = {
   initialDate: string;
+  /** Bump to refetch month + day after adding a schedule. */
+  reloadToken?: number;
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -75,7 +77,7 @@ function colorsForMed(medicationId: number) {
   return EVENT_COLORS[medicationId % EVENT_COLORS.length] ?? EVENT_COLORS[0];
 }
 
-export function PrescriptionCalendar({ initialDate }: Props) {
+export function PrescriptionCalendar({ initialDate, reloadToken = 0 }: Props) {
   const router = useRouter();
   const today = todayLocal();
   const initialYm = parseYearMonth(initialDate);
@@ -123,7 +125,7 @@ export function PrescriptionCalendar({ initialDate }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [monthKey]);
+  }, [monthKey, reloadToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,7 +153,7 @@ export function PrescriptionCalendar({ initialDate }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [selectedDate]);
+  }, [selectedDate, reloadToken]);
 
   function selectDate(nextDate: string) {
     setSelectedDate(nextDate);

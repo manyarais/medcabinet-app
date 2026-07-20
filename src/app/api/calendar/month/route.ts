@@ -6,6 +6,7 @@ import {
   isDateInInclusiveRange,
   todayLocal,
 } from "@/lib/dates";
+import { isActiveScheduleInRange } from "@/lib/calendarSchedule";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -46,14 +47,9 @@ export async function GET(request: NextRequest) {
     orderBy: [{ startDate: "asc" }, { id: "asc" }],
   });
 
-  // Only doses for Rx meds that are actually in a cabinet bay.
-  const relevant = prescriptions.filter(
-    (rx) =>
-      rx.medication.status === "active" &&
-      rx.medication.productType === "PRESCRIPTION" &&
-      rx.medication.compartment != null &&
-      rx.startDate <= monthEnd &&
-      rx.endDate >= monthStart,
+  // Any active med whose schedule overlaps this month (Rx, OTC, bay optional).
+  const relevant = prescriptions.filter((rx) =>
+    isActiveScheduleInRange(rx, monthStart, monthEnd),
   );
 
   const medicationIds = [...new Set(relevant.map((rx) => rx.medicationId))];

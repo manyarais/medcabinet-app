@@ -49,11 +49,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Medication not found." }, { status: 404 });
   }
 
-  if (medication.productType !== "PRESCRIPTION") {
-    return NextResponse.json(
-      { error: "Only prescription medications have scheduled doses." },
-      { status: 400 },
-    );
+  if (medication.status !== "active") {
+    return NextResponse.json({ error: "Medication is not active." }, { status: 400 });
   }
 
   const active = medication.prescriptions.filter((rx) =>
@@ -62,7 +59,7 @@ export async function POST(request: NextRequest) {
 
   if (active.length === 0) {
     return NextResponse.json(
-      { error: "No active prescription schedule for this day." },
+      { error: "No active schedule for this day." },
       { status: 400 },
     );
   }

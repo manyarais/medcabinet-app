@@ -1,8 +1,8 @@
 "use client";
 
-// Browser Web Speech API mic control. Hidden when unsupported.
-// Requires a secure context (HTTPS or localhost) — not plain http://LAN.
-// Chrome/Edge work best; Firefox usually has no SpeechRecognition.
+// Browser Web Speech API mic. Hidden when unsupported / non-secure.
+// Mobile (esp. iOS Safari) is buggy: isFinal often never fires, and stop()
+// may leave the mic on — we accumulate all transcripts and force-abort.
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 
@@ -10,18 +10,21 @@ type SpeechRecognitionLike = {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  maxAlternatives?: number;
   start: () => void;
   stop: () => void;
   abort: () => void;
   onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   onend: (() => void) | null;
+  onaudiostart?: (() => void) | null;
 };
 
 type SpeechRecognitionResultEventLike = {
   resultIndex: number;
   results: ArrayLike<{
     isFinal: boolean;
+    length: number;
     0: { transcript: string };
   }>;
 };
@@ -41,21 +44,44 @@ function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+function isAppleBrowser() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.vendor?.includes("Apple") === true &&
+      !navigator.userAgent.includes("Chrome") &&
+      !navigator.userAgent.includes("CriOS") &&
+      !navigator.userAgent.includes("FxiOS"));
+}
+
+function isMobileUa() {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
+/** Rebuild full transcript — mobile Safari often never sets isFinal. */
+function transcriptFromEvent(event: SpeechRecognitionResultEventLike): string {
+  let text = "";
+  for (let i = 0; i < event.results.length; i++) {
+    text += event.results[i]![0]?.transcript ?? "";
+  }
+  return text.replace(/\s+/g, " ").trim();
+}
+
 function errorMessage(code: string): string | null {
   switch (code) {
     case "not-allowed":
     case "service-not-allowed":
-      return "Microphone blocked. Allow mic for this site in the browser address bar.";
+      return "Microphone blocked. Allow mic for this site, then try again.";
     case "network":
-      return "Speech needs an internet connection (Chrome uses online recognition).";
+      return "Speech needs an internet connection.";
     case "audio-capture":
-      return "No microphone found. Check Windows sound settings.";
+      return "No microphone found.";
     case "no-speech":
-      return "Didn’t catch that — tap the mic and try again.";
+      return "Didn’t catch that — tap mic and try again.";
     case "aborted":
       return null;
     default:
-      return `Voice input error (${code}). Try Chrome or Edge.`;
+      return `Voice input error (${code}).`;
   }
 }
 
@@ -73,11 +99,15 @@ export function VoiceMicButton({
   const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const onTranscriptRef = useRef(onTranscript);
   const onFinalRef = useRef(onFinal);
-  const gotResultRef = useRef(false);
+  const lastTextRef = useRef("");
+  const finalizedRef = useRef(false);
   const manualStopRef = useRef(false);
+  const sessionRef = useRef(0);
+  const startingRef = useRef(false);
 
   useEffect(() => {
     onTranscriptRef.current = onTranscript;
@@ -97,28 +127,56 @@ export function VoiceMicButton({
 
   useEffect(() => {
     return () => {
-      try {
-        recognitionRef.current?.abort();
-      } catch {
-        // ignore
-      }
-      recognitionRef.current = null;
+      sessionRef.current += 1;
+      forceStopRecognition();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!supported) return null;
 
+  function emitFinalIfNeeded() {
+    const text = lastTextRef.current.trim();
+    if (!text || finalizedRef.current) return;
+    finalizedRef.current = true;
+    onFinalRef.current?.(text);
+  }
+
+  function forceStopRecognition() {
+    const recognition = recognitionRef.current;
+    if (!recognition) return;
+    // iOS Safari often ignores stop() unless start() is poked first.
+    if (isAppleBrowser()) {
+      try {
+        recognition.start();
+      } catch {
+        // already started
+      }
+    }
+    try {
+      recognition.abort();
+    } catch {
+      try {
+        recognition.stop();
+      } catch {
+        // ignore
+      }
+    }
+    recognitionRef.current = null;
+  }
+
   function stopListening() {
     manualStopRef.current = true;
-    try {
-      recognitionRef.current?.stop();
-    } catch {
-      // ignore
-    }
+    startingRef.current = false;
+    sessionRef.current += 1;
+    forceStopRecognition();
     setListening(false);
+    emitFinalIfNeeded();
   }
 
   async function ensureMicPermission(): Promise<boolean> {
+    // getUserMedia + SpeechRecognition fight over the audio session on iOS.
+    if (isAppleBrowser()) return true;
     if (!navigator.mediaDevices?.getUserMedia) return true;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -127,81 +185,105 @@ export function VoiceMicButton({
       }
       return true;
     } catch {
-      setToast("Microphone blocked. Allow mic for this site in the browser address bar.");
+      setToast("Microphone blocked. Allow mic for this site, then try again.");
       return false;
     }
   }
 
   async function startListening() {
+    if (startingRef.current || listening) return;
+    startingRef.current = true;
+    manualStopRef.current = false;
+    const session = ++sessionRef.current;
+
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) {
-      setToast("Voice input isn’t supported in this browser. Try Chrome or Edge.");
+      startingRef.current = false;
+      setToast("Voice isn’t supported here. Try Chrome or Safari.");
       return;
     }
 
     if (!window.isSecureContext) {
-      setToast("Open http://127.0.0.1:3000 (or HTTPS). Voice needs a secure page.");
+      startingRef.current = false;
+      setToast("Voice needs HTTPS (or localhost).");
       return;
     }
 
     const allowed = await ensureMicPermission();
-    if (!allowed) return;
-
-    try {
-      recognitionRef.current?.abort();
-    } catch {
-      // ignore
+    if (!allowed || session !== sessionRef.current) {
+      startingRef.current = false;
+      return;
     }
 
+    forceStopRecognition();
+
     const recognition = new Ctor();
+    // continuous false + interim true is the least-bad combo across mobile.
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = "en-US";
+    if (typeof recognition.maxAlternatives === "number") {
+      recognition.maxAlternatives = 1;
+    }
     recognitionRef.current = recognition;
-    gotResultRef.current = false;
-    manualStopRef.current = false;
+    lastTextRef.current = "";
+    finalizedRef.current = false;
 
     recognition.onresult = (event) => {
-      let interim = "";
-      let finalText = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const piece = event.results[i]![0]!.transcript;
-        if (event.results[i]!.isFinal) {
-          finalText += piece;
-        } else {
-          interim += piece;
-        }
+      if (session !== sessionRef.current) return;
+      const text = transcriptFromEvent(event);
+      if (!text) return;
+      lastTextRef.current = text;
+      onTranscriptRef.current(text);
+
+      // Desktop Chrome marks finals; still call onFinal once for those.
+      let anyFinal = false;
+      for (let i = 0; i < event.results.length; i++) {
+        if (event.results[i]?.isFinal) anyFinal = true;
       }
-      const display = (finalText || interim).trim();
-      if (display) {
-        gotResultRef.current = true;
-        onTranscriptRef.current(display);
-      }
-      if (finalText.trim()) {
-        onFinalRef.current?.(finalText.trim());
+      if (anyFinal && !isMobileUa()) {
+        emitFinalIfNeeded();
       }
     };
 
     recognition.onerror = (event) => {
+      if (session !== sessionRef.current) return;
+      startingRef.current = false;
       setListening(false);
       const msg = errorMessage(event.error);
       if (msg) setToast(msg);
     };
 
     recognition.onend = () => {
+      if (session !== sessionRef.current) return;
+      startingRef.current = false;
       setListening(false);
-      if (!gotResultRef.current && !manualStopRef.current) {
-        setToast((prev) => prev ?? "Listening stopped — tap mic and speak clearly.");
+      recognitionRef.current = null;
+
+      // Mobile often ends without isFinal — treat end as final commit.
+      if (!manualStopRef.current) {
+        emitFinalIfNeeded();
+      }
+
+      if (!lastTextRef.current && !manualStopRef.current) {
+        setToast((prev) => prev ?? "No words caught — tap mic and speak again.");
       }
     };
 
     try {
       recognition.start();
+      if (session !== sessionRef.current) {
+        forceStopRecognition();
+        startingRef.current = false;
+        return;
+      }
       setListening(true);
       setToast(null);
+      startingRef.current = false;
     } catch {
+      startingRef.current = false;
       setListening(false);
-      setToast("Could not start voice input. Refresh and try Chrome or Edge.");
+      setToast("Could not start voice input. Try again.");
     }
   }
 
@@ -209,7 +291,7 @@ export function VoiceMicButton({
     event.preventDefault();
     event.stopPropagation();
     if (disabled) return;
-    if (listening) {
+    if (listening || startingRef.current) {
       stopListening();
     } else {
       void startListening();
@@ -224,34 +306,38 @@ export function VoiceMicButton({
         disabled={disabled}
         aria-pressed={listening}
         aria-label={listening ? "Stop listening" : "Start voice input"}
-        title="Voice input — Chrome or Edge on localhost/HTTPS"
-        className={`inline-flex h-12 w-12 items-center justify-center rounded-full transition duration-150 ease-out active:scale-95 disabled:opacity-40 ${
+        title={listening ? "Tap to stop" : "Tap to speak"}
+        className={`inline-flex h-12 min-w-12 items-center justify-center gap-1 rounded-full px-3 text-xs font-semibold transition duration-150 ease-out active:scale-95 disabled:opacity-40 ${
           listening
-            ? "bg-[var(--danger-bg)] text-[var(--danger-text)] voice-mic-pulse"
-            : "bg-[var(--surface-tint)] text-[var(--text-secondary)] hover:text-[var(--primary)]"
+            ? "bg-[var(--danger)] text-[var(--text-on-primary)] voice-mic-pulse"
+            : "bg-[var(--surface-tint)] text-[var(--text-secondary)]"
         }`}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path
-            d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M5 11a7 7 0 0 0 14 0M12 18v3"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-          />
-        </svg>
+        {listening ? (
+          <>
+            <span
+              className="h-3 w-3 rounded-[2px] bg-current"
+              aria-hidden
+            />
+            <span>Stop</span>
+          </>
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path
+              d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M5 11a7 7 0 0 0 14 0M12 18v3"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
       </button>
-
-      {listening && (
-        <span className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold text-[var(--danger-text)]">
-          Listening…
-        </span>
-      )}
 
       {toast && (
         <div

@@ -3,6 +3,7 @@
 // Symptom lookup UI (Phase 3): match OTC cabinet labels; log "I took this".
 
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
+import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { FormEvent, useEffect, useState } from "react";
 
 type Match = {
@@ -121,7 +122,7 @@ export function SymptomSearch() {
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} className="flex items-center gap-2">
         <label htmlFor="symptom" className="sr-only">
           What are you feeling?
         </label>
@@ -131,6 +132,14 @@ export function SymptomSearch() {
           onChange={(event) => setQuery(event.target.value)}
           placeholder="What are you feeling?"
           className="min-h-12 min-w-0 flex-1 rounded-full border-0 bg-[var(--surface-tint)] px-5 text-base text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] focus:bg-[var(--surface)] focus:ring-2 focus:ring-[var(--primary)]/25"
+        />
+        <VoiceMicButton
+          onTranscript={setQuery}
+          onFinal={(text) => {
+            setQuery(text);
+            void runSearch(text);
+          }}
+          disabled={isLoading}
         />
         <button
           type="submit"

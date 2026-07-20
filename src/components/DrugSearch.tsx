@@ -4,6 +4,7 @@
 
 import { InstacartReorderButton } from "@/components/InstacartReorderButton";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
+import { VoiceMicButton } from "@/components/VoiceMicButton";
 import {
   purposeOneLine,
   refineCatalogResults,
@@ -144,7 +145,7 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
             Search medications
           </label>
         )}
-        <div className={variant === "pill" ? "flex gap-2" : "flex gap-2"}>
+        <div className="flex items-center gap-2">
           <input
             id="drug-search"
             type="search"
@@ -158,6 +159,10 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
             }
             autoComplete="off"
             enterKeyHint="search"
+          />
+          <VoiceMicButton
+            onTranscript={setQuery}
+            disabled={cabinetLoading || fdaLoading}
           />
           <button
             type="submit"

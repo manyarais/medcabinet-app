@@ -56,6 +56,7 @@ Fill **Owner**, **Her note**, and adjust Showcase role as the team decides.
 | Push notifications | — | Out | Out | | |
 | Rx recommendations for symptoms | — | Out (safety) | Out | | |
 | Public OTC label search + Amazon hop | Spec: `OTC_LABEL_SEARCH_SPEC.md` | **Not built** | Future / flag-gated | Manya | Implement behind flag OFF after hero solid; **not on stage** unless teachers OK |
+| Cabinet / search OTC → Instacart | `ReorderSection`, `InstacartReorderButton`; API if `INSTACART_API_KEY`, else web search | Works | Support / Optional | | Instacart on in-cabinet OTC + home search catalog OTC (not Rx) |
 | Competition win path (cabinet + symptoms + flash + expiry) | `COMPETITION_WIN_PLAN.md` | Works → polish | **Hero / on-stage** | Manya + team | **Priority before new features** — rehearse 90s script |
 
 ---

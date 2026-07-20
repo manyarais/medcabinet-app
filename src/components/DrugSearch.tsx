@@ -2,6 +2,7 @@
 
 // Home-page search: cabinet matches first (instant), then optional FDA catalog behind "Show more".
 
+import { InstacartReorderButton } from "@/components/InstacartReorderButton";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import {
   purposeOneLine,
@@ -278,12 +279,15 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
               {catalogReady && catalogCount > 0 && (
                 <ul className="flex flex-col gap-2">
                   {catalogResults!.map((drug, index) => (
-                    <li key={`${drug.brandName}-${drug.genericName}-${index}`}>
-                      <Link
-                        href={`/drugs/${encodeURIComponent(drug.brandName)}?from=catalog`}
-                        className="flex items-start justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 transition-colors hover:border-[var(--brand-sage-deep)] hover:bg-[var(--brand-sage)]/40"
-                      >
-                        <div className="min-w-0">
+                    <li
+                      key={`${drug.brandName}-${drug.genericName}-${index}`}
+                      className="rounded-lg border border-zinc-200 bg-white px-4 py-3 transition-colors hover:border-[var(--brand-sage-deep)] hover:bg-[var(--brand-sage)]/40"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <Link
+                          href={`/drugs/${encodeURIComponent(drug.brandName)}?from=catalog`}
+                          className="min-w-0 flex-1"
+                        >
                           <p className="truncate text-lg font-semibold text-zinc-900">
                             {drug.brandName}
                             {drug.genericName ? (
@@ -295,9 +299,22 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
                           <p className="mt-1 truncate text-sm text-zinc-600">
                             {purposeOneLine(drug.purpose)}
                           </p>
-                        </div>
+                        </Link>
                         <ProductTypeBadge productType={drug.productType} />
-                      </Link>
+                      </div>
+                      {drug.productType === "OTC" && (
+                        <div className="mt-3 flex flex-col gap-1.5 border-t border-zinc-100 pt-3">
+                          <InstacartReorderButton
+                            brandName={drug.brandName}
+                            dosage={drug.dosage}
+                            label="Find on Instacart"
+                          />
+                          <p className="text-[11px] leading-snug text-zinc-500">
+                            Not in your cabinet — opens Instacart. Pillio doesn&apos;t
+                            sell or recommend products.
+                          </p>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

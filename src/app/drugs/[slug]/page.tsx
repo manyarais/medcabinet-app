@@ -7,6 +7,7 @@ import { AddToCabinetForm } from "@/components/AddToCabinetForm";
 import { AddPrescriptionForm } from "@/components/AddPrescriptionForm";
 import { CabinetMedicationActions } from "@/components/CabinetMedicationActions";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
+import { ReorderSection } from "@/components/ReorderSection";
 import { prisma } from "@/lib/db";
 import { lookupDrugs } from "@/lib/drugs";
 import type { DrugResult } from "@/lib/types";
@@ -149,6 +150,13 @@ export default async function DrugDetailPage({ params, searchParams }: PageProps
           {cabinetMatch ? (
             <>
               <CabinetMedicationActions medication={cabinetMatch} occupied={occupied} />
+              {cabinetMatch.productType === "OTC" && (
+                <ReorderSection
+                  brandName={cabinetMatch.brandName}
+                  dosage={cabinetMatch.dosage}
+                  mode="reorder"
+                />
+              )}
               {cabinetMatch.productType === "PRESCRIPTION" && (
                 <AddPrescriptionForm
                   medicationId={cabinetMatch.id}
@@ -165,9 +173,18 @@ export default async function DrugDetailPage({ params, searchParams }: PageProps
               )}
             </>
           ) : (
-            !showCatalogAddFirst && (
-              <AddToCabinetForm drug={displayDrug} occupied={occupied} />
-            )
+            <>
+              {!showCatalogAddFirst && (
+                <AddToCabinetForm drug={displayDrug} occupied={occupied} />
+              )}
+              {displayDrug.productType === "OTC" && (
+                <ReorderSection
+                  brandName={displayDrug.brandName}
+                  dosage={displayDrug.dosage}
+                  mode="need"
+                />
+              )}
+            </>
           )}
 
           <DetailSection title="Purpose" body={displayDrug.purpose} />

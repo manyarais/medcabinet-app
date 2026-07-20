@@ -54,6 +54,13 @@ New pages, new integrations, or new product pillars need a human yes.
 
 **Done means:** polish prompts don’t quietly invent auth, shopping, social, diagnosis, etc.
 
+### M7. Public OTC label search = reference, not recommendation
+If `docs/OTC_LABEL_SEARCH_SPEC.md` is implemented, it must stay **label text search** with honest openFDA provenance — never “recommended for your symptom.”  
+Feature flag `NEXT_PUBLIC_ENABLE_OTC_MARKET_LABEL_SEARCH` defaults **OFF** (teacher-safe). Amazon is an external hop with confirm, not in-app medical commerce.  
+Do **not** add Google/login auth for the demo.
+
+**Done means:** flag OFF hides the feature; flag ON shows sources + disclaimers + secondary “View on Amazon” only; no banned recommendation language.
+
 ---
 
 ## B. Should (quality bar — flexible how)

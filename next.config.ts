@@ -1,13 +1,23 @@
 import type { NextConfig } from "next";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Absolute project root (not process.cwd / not inferred src/app).
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
+// On Evan's laptop node_modules is a junction into %LOCALAPPDATA% (keeps
+// OneDrive from gutting it), which sits outside the project root and makes
+// Turbopack panic. Widen the root only when that junction is present, so
+// Vercel and other machines keep the normal project root.
+const nodeModules = path.join(projectRoot, "node_modules");
+const nodeModulesIsLink =
+  fs.existsSync(nodeModules) && fs.lstatSync(nodeModules).isSymbolicLink();
+const homeRoot = path.resolve(projectRoot, "..", "..", "..", "..");
+
 const nextConfig: NextConfig = {
   turbopack: {
-    root: projectRoot,
+    root: nodeModulesIsLink ? homeRoot : projectRoot,
   },
   // Allow the phone / Expo WebView to load /_next JS when opening via LAN IP.
   // Without this, Next.js 16 blocks those chunks (403) and client search never runs.

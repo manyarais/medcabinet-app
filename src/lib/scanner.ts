@@ -38,7 +38,7 @@ async function probeDevice(base: string, timeoutMs: number): Promise<string> {
   return base;
 }
 
-async function findDevice(): Promise<string> {
+export async function findDevice(): Promise<string> {
   if (knownDeviceUrl) {
     try {
       return await probeDevice(knownDeviceUrl, 2000);

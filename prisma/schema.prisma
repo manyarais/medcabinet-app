@@ -34,8 +34,61 @@ model Medication {
   photoPaths      String? // JSON array of /scan-photos/... URLs from the scan
   outSince        DateTime? // when it was marked out of the cabinet (for alerts)
   disposedAt      DateTime? // when the user marked it disposed
+  // --- AI layer (ai-draft). AI-written fields NEVER overwrite label text:
+  // rawLabelText stays the original source; these sit alongside it.
+  verificationStatus      String  @default("AI_EXTRACTED") // AI_EXTRACTED | USER_CONFIRMED | NEEDS_REVIEW
+  verifiedFields          String? // JSON array of field names the user confirmed
+  instructionsPlain       String? // JSON PlainLanguageResult, only generated for confirmed labels
+  normalizedName          String? // e.g. "Metformin hydrochloride 500 mg oral tablet"
+  rxcui                   String? // RxNorm concept id backing normalizedName
+  normalizationStatus     String? // MATCHED | MULTIPLE_CANDIDATES | NO_MATCH | CONFLICTING_FIELDS | USER_REVIEW_REQUIRED
+  normalizationConfidence Float?
+  normalizationJson       String? // full NormalizationResult (candidates, ingredients, duplicates)
   usageLogs       UsageLog[]
   prescriptions   Prescription[]
+}
+
+/// One active-vision scan run: the planner state, per-frame analyses and the
+/// cross-frame evidence accumulator. Rows double as the audit trail for what
+/// the scanner did and why.
+model ScanSession {
+  id               String   @id @default(cuid())
+  status           String   @default("CAPTURING") // CAPTURING | ANALYZING | ROTATING | COMPLETE | MAX_ROTATION_REACHED | USER_REVIEW_REQUIRED | HARDWARE_ERROR
+  totalRotationDeg Int      @default(0)
+  frames           String   @default("[]") // JSON FrameRecord[]
+  fields           String   @default("{}") // JSON evidence accumulator (field -> candidate/confidence/frames)
+  actionsLog       String   @default("[]") // JSON planned actions with reasons
+  photoUrls        String   @default("[]") // JSON /scan-photos/... urls of accepted frames
+  medicationId     Int?     // set once the session is completed into a Medication
+  error            String?
+  startedAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+/// Audit record for every AI call the app makes (spec: model version, prompt
+/// version, input references, output, timestamp). Append-only.
+model AiAudit {
+  id            Int      @id @default(autoincrement())
+  feature       String // assistant | active_scan | normalize | summary | plain_language | size_estimate
+  modelVersion  String
+  promptVersion String
+  inputRefs     String // JSON references to the records/photos sent in
+  output        String
+  confidence    Float?
+  createdAt     DateTime @default(now())
+}
+
+/// Generated caregiver summaries. Facts are computed deterministically first
+/// (factSet) and the prose is rendered only from that payload.
+model CaregiverSummary {
+  id           Int       @id @default(autoincrement())
+  period       String // DAILY | WEEKLY | ON_DEMAND
+  headline     String
+  sections     String // JSON SummarySection[] with evidence ids
+  factSet      String // JSON stage-1 verified facts
+  modelVersion String
+  createdAt    DateTime  @default(now())
+  readAt       DateTime?
 }
 
 /// Append-only log of things that happened (scans, confirmations, disposals,

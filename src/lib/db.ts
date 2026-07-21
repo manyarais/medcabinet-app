@@ -10,7 +10,7 @@ const globalForPrisma = globalThis as unknown as {
   prismaSchemaVersion?: number;
 };
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3; // 3: AI layer (ScanSession / AiAudit / CaregiverSummary + Medication AI fields)
 
 function createClient() {
   return new PrismaClient();

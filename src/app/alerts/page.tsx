@@ -1,6 +1,7 @@
 // Exception-based alerts: only things that need attention, never a feed of
 // everything. Hardware offline only alerts when previously paired / configured.
 
+import { CaregiverSummaryCard } from "@/components/CaregiverSummaryCard";
 import { FlashCompartmentButton } from "@/components/FlashCompartmentButton";
 import { MedMetaChips } from "@/components/MedMetaChips";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -43,6 +44,8 @@ export default async function AlertsPage() {
         title="Alerts"
         subtitle="Only exceptions show here — empty is good."
       />
+
+      <CaregiverSummaryCard />
 
       <div className="mb-5 flex flex-wrap gap-2 text-xs">
         {hardware.quietUnpaired ? (

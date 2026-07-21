@@ -74,6 +74,10 @@ export async function POST(request: NextRequest) {
       status: "active",
       compartment,
       compartmentSize: compartment != null ? sizeForCompartment(compartment) : null,
+      // The user just reviewed the extracted label — AI features (plain
+      // language, assistant answers) may now trust these fields.
+      verificationStatus: "USER_CONFIRMED",
+      verifiedFields: JSON.stringify(EDITABLE_FIELDS),
     },
   });
 

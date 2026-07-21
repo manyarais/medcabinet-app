@@ -2,8 +2,10 @@
 // has scanned, grouped into each person's library (PATIENT name read off
 // prescription labels; anything without a name goes to "Household").
 
+import { ActiveScanButton } from "@/components/ActiveScanButton";
 import { ClearLibraryButton } from "@/components/ClearLibraryButton";
 import { DeviceScanButton } from "@/components/DeviceScanButton";
+import { ExplainLabelButton } from "@/components/ExplainLabelButton";
 import { PendingScanCard, type IngredientWarning } from "@/components/PendingScanCard";
 import { PhoneScanForm } from "@/components/PhoneScanForm";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
@@ -58,6 +60,7 @@ export default async function ScanPage() {
       />
 
       <DeviceScanButton />
+      <ActiveScanButton />
       <PhoneScanForm />
 
       {pending.length > 0 && (
@@ -147,6 +150,7 @@ function PersonLibrary({ person, meds }: { person: string; meds: Medication[] })
                 {med.rawLabelText}
               </pre>
             </details>
+            {med.status === "active" && <ExplainLabelButton medicationId={med.id} />}
           </li>
         ))}
       </ul>

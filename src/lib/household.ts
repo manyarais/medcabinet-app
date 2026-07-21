@@ -1,9 +1,13 @@
 // Household membership — Clerk identity ↔ active household + role.
 
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import type { Household, HouseholdMember } from "@/generated/prisma";
+import {
+  fetchClerkIdentity,
+  identityFromCurrentUser,
+} from "@/lib/clerkUsers";
 import { prisma } from "@/lib/db";
 import {
   hasCapability,
@@ -34,11 +38,10 @@ function forbidden(message = "Forbidden."): never {
 }
 
 async function createOwnedHousehold(userId: string): Promise<MembershipContext> {
-  const user = await currentUser();
+  const identity = (await identityFromCurrentUser()) ?? (await fetchClerkIdentity(userId));
   const name =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
-    user?.username ||
-    user?.primaryEmailAddress?.emailAddress ||
+    identity.displayName ||
+    identity.email ||
     "My household";
 
   const household = await prisma.household.create({
@@ -54,6 +57,8 @@ async function createOwnedHousehold(userId: string): Promise<MembershipContext> 
           role: "owner",
           status: "active",
           canSeeSymptomHistory: true,
+          displayName: identity.displayName,
+          email: identity.email,
         },
       },
     },
@@ -84,6 +89,9 @@ async function ensureOwnerMemberForOwnedHousehold(
   });
   if (!owned) return null;
 
+  const identity =
+    (await identityFromCurrentUser()) ?? (await fetchClerkIdentity(userId));
+
   return prisma.householdMember.upsert({
     where: {
       householdId_clerkUserId: {
@@ -97,8 +105,31 @@ async function ensureOwnerMemberForOwnedHousehold(
       role: "owner",
       status: "active",
       canSeeSymptomHistory: true,
+      displayName: identity.displayName,
+      email: identity.email,
     },
     update: {},
+  });
+}
+
+/** Refresh Clerk identity snapshot when the signed-in user hits the app. */
+async function refreshMembershipIdentity(
+  membership: HouseholdMember,
+): Promise<HouseholdMember> {
+  const identity = await identityFromCurrentUser();
+  if (!identity) return membership;
+  if (
+    membership.displayName === identity.displayName &&
+    membership.email === identity.email
+  ) {
+    return membership;
+  }
+  return prisma.householdMember.update({
+    where: { id: membership.id },
+    data: {
+      displayName: identity.displayName,
+      email: identity.email,
+    },
   });
 }
 
@@ -143,9 +174,11 @@ export async function getMembership(): Promise<MembershipContext> {
     forbidden("Invalid membership role.");
   }
 
+  const membership = await refreshMembershipIdentity(chosen);
+
   return {
     userId,
-    membership: chosen,
+    membership,
     household: chosen.household,
     role: chosen.role,
     status: chosen.status,

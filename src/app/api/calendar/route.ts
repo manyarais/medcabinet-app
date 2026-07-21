@@ -7,6 +7,7 @@ import {
   todayLocal,
 } from "@/lib/dates";
 import { isActiveScheduleOnDate } from "@/lib/calendarSchedule";
+import { memberShortLabel } from "@/lib/clerkUsers";
 import { parseDoseTimes } from "@/lib/doseTimes";
 import { prisma } from "@/lib/db";
 import { requireCapability } from "@/lib/household";
@@ -25,6 +26,8 @@ export type CalendarDose = {
   /** Local HH:MM scheduled time for this dose slot. */
   scheduledTime: string;
   taken: boolean;
+  takenAt: string | null;
+  takenByLabel: string | null;
 };
 
 export async function GET(request: NextRequest) {
@@ -65,14 +68,32 @@ export async function GET(request: NextRequest) {
           orderBy: { takenAt: "asc" },
         });
 
-  const takenCountByMed = new Map<number, number>();
+  const logsByMed = new Map<number, typeof logs>();
   for (const log of logs) {
     if (log.medicationId == null) continue;
-    takenCountByMed.set(
-      log.medicationId,
-      (takenCountByMed.get(log.medicationId) ?? 0) + 1,
-    );
+    const list = logsByMed.get(log.medicationId) ?? [];
+    list.push(log);
+    logsByMed.set(log.medicationId, list);
   }
+
+  const takerIds = [
+    ...new Set(
+      logs
+        .map((l) => l.takenByClerkUserId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const members =
+    takerIds.length === 0
+      ? []
+      : await prisma.householdMember.findMany({
+          where: {
+            householdId: household.id,
+            clerkUserId: { in: takerIds },
+          },
+          select: { clerkUserId: true, displayName: true, email: true },
+        });
+  const memberByClerkId = new Map(members.map((m) => [m.clerkUserId, m]));
 
   const doses: CalendarDose[] = [];
   for (const rx of active) {
@@ -88,7 +109,11 @@ export async function GET(request: NextRequest) {
         )
         .reduce((sum, other) => sum + other.dosesPerDay, 0);
       const absoluteIndex = priorSlots + doseIndex;
-      const takenCount = takenCountByMed.get(rx.medicationId) ?? 0;
+      const medLogs = logsByMed.get(rx.medicationId) ?? [];
+      const log = medLogs[absoluteIndex - 1];
+      const taker = log?.takenByClerkUserId
+        ? memberByClerkId.get(log.takenByClerkUserId)
+        : null;
 
       doses.push({
         prescriptionId: rx.id,
@@ -100,7 +125,9 @@ export async function GET(request: NextRequest) {
         dosesPerDay: rx.dosesPerDay,
         pillsPerDose: rx.pillsPerDose,
         scheduledTime: times[doseIndex - 1] ?? "08:00",
-        taken: absoluteIndex <= takenCount,
+        taken: Boolean(log),
+        takenAt: log?.takenAt.toISOString() ?? null,
+        takenByLabel: taker ? memberShortLabel(taker) : null,
       });
     }
   }

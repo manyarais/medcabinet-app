@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
       productType: log.medication?.productType ?? "UNKNOWN",
       symptom: log.symptom,
       takenAt: log.takenAt.toISOString(),
+      takenByClerkUserId: log.takenByClerkUserId,
     }));
 
   return NextResponse.json({ entries });

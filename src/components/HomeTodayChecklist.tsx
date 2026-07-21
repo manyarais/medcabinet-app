@@ -21,6 +21,8 @@ type Dose = {
   pillsPerDose: number;
   scheduledTime: string;
   taken: boolean;
+  takenAt?: string | null;
+  takenByLabel?: string | null;
 };
 
 type CalendarResponse = {
@@ -215,9 +217,22 @@ export function HomeTodayChecklist() {
                       </span>
                     </div>
                     <p className="text-xs text-[var(--text-secondary)]">
-                      Dose {dose.doseIndex}/{dose.dosesPerDay}
-                      {dose.compartment != null ? ` · #${dose.compartment}` : ""}
-                      {canUntake ? " · tap to undo" : ""}
+                      {dose.taken && dose.takenAt ? (
+                        <>
+                          Taken ·{" "}
+                          {new Date(dose.takenAt).toLocaleTimeString([], {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                          {dose.takenByLabel ? ` · by ${dose.takenByLabel}` : ""}
+                          {canUntake ? " · tap to undo" : ""}
+                        </>
+                      ) : (
+                        <>
+                          Dose {dose.doseIndex}/{dose.dosesPerDay}
+                          {dose.compartment != null ? ` · #${dose.compartment}` : ""}
+                        </>
+                      )}
                     </p>
                   </div>
                 </li>

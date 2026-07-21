@@ -16,7 +16,7 @@ type Body = {
 };
 
 export async function POST(request: NextRequest) {
-  const { household } = await requireCapability("checkDose");
+  const { household, userId } = await requireCapability("checkDose");
   let body: Body;
   try {
     body = (await request.json()) as Body;
@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
       medicationId,
       symptom: null,
       takenAt: new Date(),
+      takenByClerkUserId: userId,
     },
   });
 

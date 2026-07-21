@@ -1,6 +1,7 @@
-// POST /api/households/join — { code } → pending membership.
+// POST /api/households/join — { code } → pending membership (upsert, no duplicates).
 
 import { auth } from "@clerk/nextjs/server";
+import { fetchClerkIdentity } from "@/lib/clerkUsers";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -28,43 +29,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existing = await prisma.householdMember.findUnique({
+    const identity = await fetchClerkIdentity(userId);
+
+    const member = await prisma.householdMember.upsert({
       where: {
         householdId_clerkUserId: {
           householdId: invite.householdId,
           clerkUserId: userId,
         },
       },
-    });
-    if (existing) {
-      return NextResponse.json(
-        {
-          error:
-            existing.status === "pending"
-              ? "Your join request is already pending."
-              : "You are already a member of this household.",
-          status: existing.status,
-        },
-        { status: 409 },
-      );
-    }
-
-    const member = await prisma.householdMember.create({
-      data: {
+      create: {
         householdId: invite.householdId,
         clerkUserId: userId,
         role: "viewer",
         status: "pending",
         canSeeSymptomHistory: false,
+        displayName: identity.displayName,
+        email: identity.email,
+      },
+      update: {
+        displayName: identity.displayName,
+        email: identity.email,
       },
       include: { household: { select: { name: true } } },
     });
 
-    return NextResponse.json({
-      ok: true,
-      status: "pending",
-      householdName: member.household.name,
-    });
+    if (member.status === "active") {
+      return NextResponse.json(
+        { error: "You're already a member", status: member.status },
+        { status: 409 },
+      );
+    }
+
+    if (member.status === "pending") {
+      return NextResponse.json({
+        ok: true,
+        status: "pending",
+        householdName: member.household.name,
+      });
+    }
+
+    return NextResponse.json(
+      { error: "Could not join household." },
+      { status: 500 },
+    );
   } catch (error) {
     console.error("join household failed:", error);
     return NextResponse.json({ error: "Could not join household." }, { status: 500 });

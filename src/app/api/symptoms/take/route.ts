@@ -10,7 +10,7 @@ type Body = {
 };
 
 export async function POST(request: NextRequest) {
-  const { household } = await requireCapability("checkDose");
+  const { household, userId } = await requireCapability("checkDose");
 
   let body: Body;
   try {
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
         householdId: household.id,
         medicationId,
         symptom,
+        takenByClerkUserId: userId,
       },
     }),
     prisma.medication.update({

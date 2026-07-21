@@ -14,12 +14,22 @@ type Membership = {
 type MemberRow = {
   id: string;
   clerkUserId: string;
-  displayName?: string;
+  displayName: string;
   email?: string | null;
   role: string;
   status: string;
   canSeeSymptomHistory: boolean;
+  isSelf?: boolean;
+  isLastOwner?: boolean;
 };
+
+function memberLabel(m: MemberRow): string {
+  const name = m.displayName?.trim();
+  if (name && name !== "Unknown member") return name;
+  const email = m.email?.trim();
+  if (email) return email;
+  return "Unknown member";
+}
 
 /** Household switcher, invites, and member management for Settings. */
 export function HouseholdSharingPanel() {
@@ -140,11 +150,16 @@ export function HouseholdSharingPanel() {
     });
   }
 
-  function removeMember(id: string) {
-    if (!window.confirm("Remove this member from the household?")) return;
+  function removeMember(m: MemberRow) {
+    if (m.isSelf && m.isLastOwner) {
+      setError("You can't remove yourself as the last owner.");
+      return;
+    }
+    const label = memberLabel(m);
+    if (!window.confirm(`Remove ${label} from this household?`)) return;
     startTransition(async () => {
       setError(null);
-      const res = await fetch(`/api/households/members/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/households/members/${m.id}`, { method: "DELETE" });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         setError(data.error ?? "Could not remove member.");
@@ -236,9 +251,9 @@ export function HouseholdSharingPanel() {
                   >
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-[var(--text-primary)]">
-                        {m.displayName ?? m.clerkUserId}
+                        {memberLabel(m)}
                       </p>
-                      {m.email && (
+                      {m.email && memberLabel(m) !== m.email && (
                         <p className="truncate text-xs text-[var(--text-secondary)]">
                           {m.email}
                         </p>
@@ -273,53 +288,69 @@ export function HouseholdSharingPanel() {
               Members
             </p>
             <ul className="mt-3 flex flex-col gap-3">
-              {activeMembers.map((m) => (
-                <li key={m.id} className="flex flex-col gap-2 border-b border-[var(--border)] pb-3 last:border-0">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-[var(--text-primary)]">
-                      {m.displayName ?? m.clerkUserId}
-                    </p>
-                    {m.email && (
-                      <p className="truncate text-xs text-[var(--text-secondary)]">
-                        {m.email}
+              {activeMembers.map((m) => {
+                const cannotRemove = Boolean(m.isSelf && m.isLastOwner);
+                return (
+                  <li
+                    key={m.id}
+                    className="flex flex-col gap-2 border-b border-[var(--border)] pb-3 last:border-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-[var(--text-primary)]">
+                        {memberLabel(m)}
+                        {m.isSelf ? (
+                          <span className="ml-2 text-xs font-normal text-[var(--text-secondary)]">
+                            (you)
+                          </span>
+                        ) : null}
                       </p>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      value={m.role}
-                      disabled={pending}
-                      onChange={(e) => patchMember(m.id, { role: e.target.value })}
-                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm"
-                    >
-                      <option value="owner">owner</option>
-                      <option value="caregiver">caregiver</option>
-                      <option value="viewer">viewer</option>
-                    </select>
-                    <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-                      <input
-                        type="checkbox"
-                        checked={m.canSeeSymptomHistory}
-                        disabled={pending || m.role === "owner"}
-                        onChange={(e) =>
-                          patchMember(m.id, {
-                            canSeeSymptomHistory: e.target.checked,
-                          })
+                      {m.email && memberLabel(m) !== m.email && (
+                        <p className="truncate text-xs text-[var(--text-secondary)]">
+                          {m.email}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={m.role}
+                        disabled={pending || cannotRemove}
+                        onChange={(e) => patchMember(m.id, { role: e.target.value })}
+                        className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm"
+                      >
+                        <option value="owner">owner</option>
+                        <option value="caregiver">caregiver</option>
+                        <option value="viewer">viewer</option>
+                      </select>
+                      <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                        <input
+                          type="checkbox"
+                          checked={m.canSeeSymptomHistory}
+                          disabled={pending || m.role === "owner"}
+                          onChange={(e) =>
+                            patchMember(m.id, {
+                              canSeeSymptomHistory: e.target.checked,
+                            })
+                          }
+                        />
+                        Symptom history
+                      </label>
+                      <button
+                        type="button"
+                        disabled={pending || cannotRemove}
+                        onClick={() => removeMember(m)}
+                        title={
+                          cannotRemove
+                            ? "You can't remove yourself as the last owner"
+                            : "Remove member"
                         }
-                      />
-                      Symptom history
-                    </label>
-                    <button
-                      type="button"
-                      disabled={pending}
-                      onClick={() => removeMember(m.id)}
-                      className="ml-auto text-xs font-semibold text-[var(--danger-text)]"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </li>
-              ))}
+                        className="ml-auto text-xs font-semibold text-[var(--danger-text)] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </>

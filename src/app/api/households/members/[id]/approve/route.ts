@@ -1,5 +1,6 @@
 // POST /api/households/members/[id]/approve — { role }
 
+import { fetchClerkIdentity } from "@/lib/clerkUsers";
 import { prisma } from "@/lib/db";
 import { requireCapability } from "@/lib/household";
 import { isMemberRole } from "@/lib/permissions";
@@ -27,9 +28,16 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Pending member not found." }, { status: 404 });
     }
 
+    const identity = await fetchClerkIdentity(member.clerkUserId);
+
     const updated = await prisma.householdMember.update({
       where: { id: member.id },
-      data: { status: "active", role },
+      data: {
+        status: "active",
+        role,
+        displayName: identity.displayName ?? member.displayName,
+        email: identity.email ?? member.email,
+      },
     });
 
     return NextResponse.json({ member: updated });

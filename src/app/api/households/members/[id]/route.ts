@@ -77,7 +77,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
       const owners = await countOwners(household.id);
       if (member.role === "owner" && owners <= 1) {
         return NextResponse.json(
-          { error: "Cannot remove yourself as the sole owner." },
+          { error: "You can't remove yourself as the last owner." },
           { status: 400 },
         );
       }

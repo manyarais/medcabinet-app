@@ -37,6 +37,9 @@ model HouseholdMember {
   role                  String // "owner" | "caregiver" | "viewer"
   status                String // "pending" | "active"
   canSeeSymptomHistory  Boolean   @default(false)
+  /// Snapshotted from Clerk at join/approve / refreshed on sign-in.
+  displayName           String?
+  email                 String?
   createdAt             DateTime  @default(now())
 
   @@unique([householdId, clerkUserId])
@@ -106,15 +109,18 @@ model ActivityEvent {
 }
 
 model UsageLog {
-  id           Int         @id @default(autoincrement())
-  householdId  String
-  household    Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  medicationId Int?
-  medication   Medication? @relation(fields: [medicationId], references: [id], onDelete: SetNull)
-  symptom      String? // what the user searched when they took it; null for scheduled Rx doses
-  takenAt      DateTime    @default(now())
+  id                 Int         @id @default(autoincrement())
+  householdId        String
+  household          Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  medicationId       Int?
+  medication         Medication? @relation(fields: [medicationId], references: [id], onDelete: SetNull)
+  symptom            String? // what the user searched when they took it; null for scheduled Rx doses
+  takenAt            DateTime    @default(now())
+  /// Clerk user who checked off / tapped "Take this" (shared calendar attribution).
+  takenByClerkUserId String?
 
   @@index([householdId])
+  @@index([takenByClerkUserId])
 }
 
 model Prescription {

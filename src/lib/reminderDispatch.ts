@@ -17,9 +17,13 @@ export type OverdueDose = {
   scheduledTime: string;
 };
 
-export async function listOverdueDosesToday(now = new Date()): Promise<OverdueDose[]> {
+export async function listOverdueDosesToday(
+  householdId: string,
+  now = new Date(),
+): Promise<OverdueDose[]> {
   const date = todayLocal();
   const prescriptions = await prisma.prescription.findMany({
+    where: { householdId },
     include: { medication: true },
     orderBy: [{ startDate: "asc" }, { id: "asc" }],
   });
@@ -35,6 +39,7 @@ export async function listOverdueDosesToday(now = new Date()): Promise<OverdueDo
       ? []
       : await prisma.usageLog.findMany({
           where: {
+            householdId,
             medicationId: { in: medicationIds },
             symptom: null,
             takenAt: { gte: start, lte: end },

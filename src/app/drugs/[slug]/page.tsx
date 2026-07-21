@@ -10,6 +10,7 @@ import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { ReorderSection } from "@/components/ReorderSection";
 import { prisma } from "@/lib/db";
 import { lookupDrugs } from "@/lib/drugs";
+import { getHousehold } from "@/lib/household";
 import type { DrugResult } from "@/lib/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -22,6 +23,7 @@ type PageProps = {
 };
 
 export default async function DrugDetailPage({ params, searchParams }: PageProps) {
+  const household = await getHousehold();
   const { slug } = await params;
   const { from } = await searchParams;
   const fromCatalog = from === "catalog";
@@ -47,7 +49,7 @@ export default async function DrugDetailPage({ params, searchParams }: PageProps
   }
 
   const cabinetMedications = await prisma.medication.findMany({
-    where: { status: "active" },
+    where: { householdId: household.id, status: "active" },
     include: { prescriptions: { orderBy: { startDate: "asc" } } },
   });
   const cabinetMatch =

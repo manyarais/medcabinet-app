@@ -4,9 +4,11 @@
 import { logActivity } from "@/lib/activity";
 import { flashCompartment } from "@/lib/cabinetBoard";
 import { isValidAssignableCompartment } from "@/lib/compartments";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
+  const household = await getHousehold();
   let compartment: number;
   try {
     const body = (await request.json()) as { compartment?: number };
@@ -20,7 +22,7 @@ export async function POST(request: NextRequest) {
 
   const ok = await flashCompartment(compartment);
   if (ok) {
-    void logActivity("flash", { compartment, detail: "locate" });
+    void logActivity(household.id, "flash", { compartment, detail: "locate" });
     return NextResponse.json({ ok: true });
   }
   return NextResponse.json(

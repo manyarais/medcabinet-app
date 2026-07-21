@@ -4,6 +4,7 @@
 
 import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 
 export const dynamic = "force-dynamic";
 
@@ -21,14 +22,16 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default async function ActivityPage() {
+  const household = await getHousehold();
   const events = await prisma.activityEvent.findMany({
+    where: { householdId: household.id },
     orderBy: { createdAt: "desc" },
     take: 100,
   });
 
   const medIds = [...new Set(events.map((e) => e.medicationId).filter((v): v is number => v != null))];
   const meds = await prisma.medication.findMany({
-    where: { id: { in: medIds } },
+    where: { householdId: household.id, id: { in: medIds } },
     select: { id: true, brandName: true },
   });
   const nameById = new Map(meds.map((m) => [m.id, m.brandName]));

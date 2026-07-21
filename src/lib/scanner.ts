@@ -7,7 +7,7 @@ import { lookupDrugs } from "@/lib/drugs";
 import { prisma } from "@/lib/db";
 import { TOTAL_COMPARTMENTS } from "@/lib/compartments";
 import { flashCompartment } from "@/lib/cabinetBoard";
-import type { Medication } from "@prisma/client";
+import type { Medication } from "@/generated/prisma";
 
 // Where the scanner might live — DEVICE_URL first (comma-separated ok), then
 // the known addresses on campus WiFi and the phone-hotspot fallback. The scan
@@ -137,9 +137,9 @@ export async function runDeviceScan(): Promise<{
 // Lowest compartment (1..8) with no medication assigned, or null when the
 // cabinet is full. The DB is the source of truth, so the app's cabinet grid
 // and the physical lights stay in step (compartment N = board unit N-1).
-export async function nextFreeCompartment(): Promise<number | null> {
+export async function nextFreeCompartment(householdId: string): Promise<number | null> {
   const occupied = await prisma.medication.findMany({
-    where: { compartment: { not: null } },
+    where: { householdId, compartment: { not: null } },
     select: { compartment: true },
   });
   const taken = new Set(occupied.map((med) => med.compartment));
@@ -242,6 +242,7 @@ export type ScanIntakeResult = {
 // person's library updates the row in place (no re-review needed) and keeps
 // its compartment so the flash guides the bottle back to its usual spot.
 export async function intakeScan(
+  householdId: string,
   fields: ScanFields,
   photoUrls: string[] = [],
 ): Promise<ScanIntakeResult> {
@@ -260,7 +261,7 @@ export async function intakeScan(
 
   // Case-insensitive duplicate check in JS (SQLite/Prisma has no insensitive
   // mode) — same approach as the cabinet add route.
-  const samePerson = await prisma.medication.findMany({ where: { personName } });
+  const samePerson = await prisma.medication.findMany({ where: { householdId, personName } });
   const existing = samePerson.find(
     (med) => med.brandName.toLowerCase() === brandName.toLowerCase(),
   );
@@ -289,6 +290,7 @@ export async function intakeScan(
 
   const medication = await prisma.medication.create({
     data: {
+      householdId,
       brandName,
       productType: match?.productType ?? "UNKNOWN",
       indications: match?.indications ?? "",

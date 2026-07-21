@@ -2,7 +2,7 @@
 // Lisinopril) so the calendar only shows doses for meds actually in a bay.
 // Extra OTC stay in the library unassigned.
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../src/generated/prisma";
 import { sizeForCompartment } from "../src/lib/compartments";
 import { addDaysLocal, formatDateLocal } from "../src/lib/dates";
 import { serializeDoseTimes } from "../src/lib/doseTimes";
@@ -184,14 +184,24 @@ const medications = [
 ];
 
 async function main() {
-  await prisma.usageLog.deleteMany();
-  await prisma.prescription.deleteMany();
-  await prisma.medication.deleteMany();
+  const household = await prisma.household.upsert({
+    where: { clerkUserId: "SEED_USER" },
+    create: {
+      clerkUserId: "SEED_USER",
+      name: "Seed household",
+      reminderSettings: { create: {} },
+    },
+    update: {},
+  });
+  await prisma.usageLog.deleteMany({ where: { householdId: household.id } });
+  await prisma.prescription.deleteMany({ where: { householdId: household.id } });
+  await prisma.medication.deleteMany({ where: { householdId: household.id } });
 
   const created = [];
   for (const medication of medications) {
     const row = await prisma.medication.create({
       data: {
+        householdId: household.id,
         ...medication,
         compartmentSize:
           medication.compartment != null
@@ -209,6 +219,7 @@ async function main() {
   if (amoxicillin) {
     await prisma.prescription.create({
       data: {
+        householdId: household.id,
         medicationId: amoxicillin.id,
         dosesPerDay: 3,
         pillsPerDose: 1,
@@ -222,6 +233,7 @@ async function main() {
   if (lisinopril) {
     await prisma.prescription.create({
       data: {
+        householdId: household.id,
         medicationId: lisinopril.id,
         dosesPerDay: 1,
         pillsPerDose: 1,

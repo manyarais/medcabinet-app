@@ -7,16 +7,19 @@ import {
   type ReminderSettingsDto,
 } from "@/lib/reminderSettings";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  const settings = await getReminderSettings();
+  const household = await getHousehold();
+  const settings = await getReminderSettings(household.id);
   return NextResponse.json({ settings });
 }
 
 type PatchBody = Partial<ReminderSettingsDto>;
 
 export async function PATCH(request: NextRequest) {
+  const household = await getHousehold();
   let body: PatchBody;
   try {
     body = (await request.json()) as PatchBody;
@@ -24,7 +27,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const current = await getReminderSettings();
+  const current = await getReminderSettings(household.id);
   const data: ReminderSettingsDto = { ...current };
 
   if (body.serverAutoCall !== undefined) {
@@ -65,10 +68,10 @@ export async function PATCH(request: NextRequest) {
   }
 
   await prisma.reminderSettings.upsert({
-    where: { id: 1 },
-    create: { id: 1, ...data },
+    where: { householdId: household.id },
+    create: { householdId: household.id, ...data },
     update: data,
   });
 
-  return NextResponse.json({ settings: await getReminderSettings() });
+  return NextResponse.json({ settings: await getReminderSettings(household.id) });
 }

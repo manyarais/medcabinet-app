@@ -2,6 +2,7 @@
 // Instant path for home search; does not call openFDA.
 
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export type CabinetSearchHit = {
@@ -15,6 +16,7 @@ export type CabinetSearchHit = {
 };
 
 export async function GET(request: NextRequest) {
+  const household = await getHousehold();
   const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   if (!query) {
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
 
   const needle = query.toLowerCase();
   const medications = await prisma.medication.findMany({
-    where: { status: "active" },
+    where: { householdId: household.id, status: "active" },
     orderBy: { brandName: "asc" },
   });
 

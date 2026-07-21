@@ -43,14 +43,17 @@ function escapeXml(value: string): string {
 
 /** Spoken script for a reminder call (not medical advice). */
 export async function buildReminderSayText(opts: {
+  /** Required when `template` is omitted (loads ReminderSettings). */
+  householdId?: string;
   brandName?: string;
   scheduledTime?: string;
   test?: boolean;
   template?: string;
 }): Promise<string> {
-  const settings = opts.template
-    ? null
-    : await getReminderSettings().catch(() => null);
+  const settings =
+    opts.template || !opts.householdId
+      ? null
+      : await getReminderSettings(opts.householdId).catch(() => null);
   const template =
     opts.template ?? settings?.callMessageTemplate ?? DEFAULT_CALL_TEMPLATE;
 

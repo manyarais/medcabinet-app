@@ -22,9 +22,10 @@ function envConfigured(name: "DEVICE_URL" | "CABINET_URL"): boolean {
   );
 }
 
-async function hasPriorHardwareActivity(): Promise<boolean> {
+async function hasPriorHardwareActivity(householdId: string): Promise<boolean> {
   const hit = await prisma.activityEvent.findFirst({
     where: {
+      householdId,
       OR: [
         { type: "flash" },
         { detail: { contains: "hardware scan" } },
@@ -55,11 +56,11 @@ async function probeScanner(): Promise<boolean> {
   return false;
 }
 
-export async function getHardwareStatus(): Promise<HardwareStatus> {
+export async function getHardwareStatus(householdId: string): Promise<HardwareStatus> {
   const [scannerUp, lightsUp, priorUse] = await Promise.all([
     probeScanner(),
     probeCabinetBoard(),
-    hasPriorHardwareActivity(),
+    hasPriorHardwareActivity(householdId),
   ]);
 
   const scannerExpected = envConfigured("DEVICE_URL") || priorUse;

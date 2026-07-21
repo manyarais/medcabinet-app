@@ -2,10 +2,12 @@
 // POST /api/symptoms/take — log that the user took a medication for a symptom.
 
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { matchOtcCabinetMeds } from "@/lib/symptomMatch";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
+  const household = await getHousehold();
   const symptom = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   if (!symptom) {
@@ -16,7 +18,7 @@ export async function GET(request: NextRequest) {
   }
 
   const cabinetMeds = await prisma.medication.findMany({
-    where: { status: "active" },
+    where: { householdId: household.id, status: "active" },
   });
 
   // PRODUCT SAFETY: OTC-only matches (see matchOtcCabinetMeds).
@@ -24,6 +26,7 @@ export async function GET(request: NextRequest) {
 
   const pastUsage = await prisma.usageLog.findMany({
     where: {
+      householdId: household.id,
       symptom: { contains: symptom },
     },
     include: { medication: true },

@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { COMPARTMENTS, type CompartmentConfig } from "@/lib/compartments";
 import { prisma } from "@/lib/db";
 import { effectiveExpiryForMedication, type ExpiryStatus } from "@/lib/expiration";
+import { getHousehold } from "@/lib/household";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +23,9 @@ type MedInCell = {
 };
 
 export default async function CabinetPage() {
+  const household = await getHousehold();
   const medications = await prisma.medication.findMany({
-    where: { status: "active" },
+    where: { householdId: household.id, status: "active" },
     include: { prescriptions: { select: { endDate: true } } },
   });
 

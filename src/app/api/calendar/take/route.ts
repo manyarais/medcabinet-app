@@ -7,6 +7,7 @@ import {
   todayLocal,
 } from "@/lib/dates";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 type Body = {
@@ -15,6 +16,7 @@ type Body = {
 };
 
 export async function POST(request: NextRequest) {
+  const household = await getHousehold();
   let body: Body;
   try {
     body = (await request.json()) as Body;
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
     include: { prescriptions: true },
   });
 
-  if (!medication) {
+  if (!medication || medication.householdId !== household.id) {
     return NextResponse.json({ error: "Medication not found." }, { status: 404 });
   }
 
@@ -68,6 +70,7 @@ export async function POST(request: NextRequest) {
   const { start, end } = dayBoundsLocal(date);
   const takenCount = await prisma.usageLog.count({
     where: {
+      householdId: household.id,
       medicationId,
       symptom: null,
       takenAt: { gte: start, lte: end },
@@ -84,6 +87,7 @@ export async function POST(request: NextRequest) {
   // Log at the current time (today only).
   const usageLog = await prisma.usageLog.create({
     data: {
+      householdId: household.id,
       medicationId,
       symptom: null,
       takenAt: new Date(),

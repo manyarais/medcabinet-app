@@ -7,6 +7,7 @@ import {
 } from "@/lib/dates";
 import { isActiveScheduleOnDate } from "@/lib/calendarSchedule";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 
 export type TodayDoseSummary = {
   medicationId: number;
@@ -25,11 +26,12 @@ export type HomeDashboardData = {
 };
 
 export async function getHomeDashboardData(): Promise<HomeDashboardData> {
+  const household = await getHousehold();
   const today = todayLocal();
 
   const [medications, prescriptions, attention] = await Promise.all([
     prisma.medication.findMany({
-      where: { status: "active" },
+      where: { householdId: household.id, status: "active" },
       select: {
         id: true,
         brandName: true,
@@ -37,10 +39,11 @@ export async function getHomeDashboardData(): Promise<HomeDashboardData> {
       },
     }),
     prisma.prescription.findMany({
+      where: { householdId: household.id },
       include: { medication: true },
       orderBy: [{ startDate: "asc" }, { id: "asc" }],
     }),
-    getAttentionSnapshot(),
+    getAttentionSnapshot(household.id),
   ]);
 
   const active = prescriptions.filter((rx) =>
@@ -54,6 +57,7 @@ export async function getHomeDashboardData(): Promise<HomeDashboardData> {
       ? []
       : await prisma.usageLog.findMany({
           where: {
+            householdId: household.id,
             medicationId: { in: medicationIds },
             symptom: null,
             takenAt: { gte: start, lte: end },

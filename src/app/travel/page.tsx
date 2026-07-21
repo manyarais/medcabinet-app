@@ -4,12 +4,14 @@
 import { TravelPacker } from "@/components/TravelPacker";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 
 export const dynamic = "force-dynamic";
 
 export default async function TravelPage() {
+  const household = await getHousehold();
   const meds = await prisma.medication.findMany({
-    where: { status: "active" },
+    where: { householdId: household.id, status: "active" },
     orderBy: { brandName: "asc" },
     select: {
       id: true,

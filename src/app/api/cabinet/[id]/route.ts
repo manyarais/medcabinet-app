@@ -7,6 +7,7 @@ import {
   validateAssignableCompartment,
 } from "@/lib/cabinet";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -31,6 +32,7 @@ type PatchBody = {
 };
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const household = await getHousehold();
   const { id: idParam } = await params;
   const id = Number(idParam);
   if (!Number.isInteger(id) || id < 1) {
@@ -38,7 +40,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   const existing = await prisma.medication.findUnique({ where: { id } });
-  if (!existing) {
+  if (!existing || existing.householdId !== household.id) {
     return NextResponse.json({ error: "Medication not found." }, { status: 404 });
   }
 
@@ -124,7 +126,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Timestamp for "hasn't been returned" alerts.
     data.outSince = data.outOfCabinet ? new Date() : null;
     if (data.outOfCabinet !== existing.outOfCabinet) {
-      void logActivity(data.outOfCabinet ? "out" : "returned", {
+      void logActivity(household.id, data.outOfCabinet ? "out" : "returned", {
         medicationId: id,
         compartment: existing.compartment,
         detail: existing.brandName,
@@ -140,7 +142,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Moving to the same compartment is fine; skip occupancy self-conflict.
     if (compartment !== existing.compartment) {
-      const occupied = await getOccupiedCompartments(id);
+      const occupied = await getOccupiedCompartments(household.id, id);
       const check = validateAssignableCompartment(compartment, occupied);
       if (!check.ok) {
         return NextResponse.json({ error: check.error }, { status: check.status });
@@ -159,6 +161,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  const household = await getHousehold();
   const { id: idParam } = await params;
   const id = Number(idParam);
   if (!Number.isInteger(id) || id < 1) {
@@ -166,7 +169,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   }
 
   const existing = await prisma.medication.findUnique({ where: { id } });
-  if (!existing) {
+  if (!existing || existing.householdId !== household.id) {
     return NextResponse.json({ error: "Medication not found." }, { status: 404 });
   }
 

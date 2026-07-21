@@ -9,23 +9,29 @@ import { PhoneScanForm } from "@/components/PhoneScanForm";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { overlapsForMedication } from "@/lib/ingredients";
 import { parsePhotoPaths } from "@/lib/scanPhotos";
-import type { Medication } from "@prisma/client";
+import type { Medication } from "@/generated/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function ScanPage() {
+  const household = await getHousehold();
   // Everything that came from a scanner has a rawLabelText dump.
   const scanned = await prisma.medication.findMany({
-    where: { rawLabelText: { not: null }, status: { not: "disposed" } },
+    where: {
+      householdId: household.id,
+      rawLabelText: { not: null },
+      status: { not: "disposed" },
+    },
     orderBy: { addedAt: "desc" },
   });
   const pending = scanned.filter((med) => med.status === "pending_review");
 
   // Duplicate-ingredient info for each pending scan, vs the active household.
   const activeMeds = await prisma.medication.findMany({
-    where: { status: "active" },
+    where: { householdId: household.id, status: "active" },
     select: { id: true, brandName: true, genericName: true, compartment: true },
   });
   const warningsById = new Map<number, IngredientWarning[]>(

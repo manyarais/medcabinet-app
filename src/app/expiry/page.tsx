@@ -11,7 +11,8 @@ import {
   SOON_DAYS,
   type ExpiryStatus,
 } from "@/lib/expiration";
-import type { Medication } from "@prisma/client";
+import type { Medication } from "@/generated/prisma";
+import { getHousehold } from "@/lib/household";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +24,14 @@ const SECTION_ORDER: Array<{ status: ExpiryStatus; title: string; blurb: string 
 ];
 
 export default async function ExpiryPage() {
+  const household = await getHousehold();
   const meds = await prisma.medication.findMany({
-    where: { status: "active" },
+    where: { householdId: household.id, status: "active" },
     orderBy: { brandName: "asc" },
     include: { prescriptions: { select: { endDate: true } } },
   });
   const disposed = await prisma.medication.findMany({
-    where: { status: "disposed" },
+    where: { householdId: household.id, status: "disposed" },
     orderBy: { disposedAt: "desc" },
     take: 10,
   });

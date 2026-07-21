@@ -8,6 +8,7 @@ import {
 } from "@/lib/dates";
 import { isActiveScheduleInRange } from "@/lib/calendarSchedule";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
@@ -25,6 +26,7 @@ export type MonthDaySummary = {
 };
 
 export async function GET(request: NextRequest) {
+  const household = await getHousehold();
   const monthParam =
     request.nextUrl.searchParams.get("month")?.trim() ??
     todayLocal().slice(0, 7);
@@ -43,6 +45,7 @@ export async function GET(request: NextRequest) {
   const monthEnd = formatDateLocal(new Date(year, monthIndex, daysInMonth));
 
   const prescriptions = await prisma.prescription.findMany({
+    where: { householdId: household.id },
     include: { medication: true },
     orderBy: [{ startDate: "asc" }, { id: "asc" }],
   });
@@ -61,6 +64,7 @@ export async function GET(request: NextRequest) {
       ? []
       : await prisma.usageLog.findMany({
           where: {
+            householdId: household.id,
             medicationId: { in: medicationIds },
             symptom: null,
             takenAt: { gte: rangeStart, lte: rangeEnd },

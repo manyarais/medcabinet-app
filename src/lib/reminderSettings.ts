@@ -15,11 +15,11 @@ export type ReminderSettingsDto = {
   callOverdueDuringQuiet: boolean;
 };
 
-export async function getReminderSettings(): Promise<ReminderSettingsDto> {
+export async function getReminderSettings(householdId: string): Promise<ReminderSettingsDto> {
   const row =
-    (await prisma.reminderSettings.findUnique({ where: { id: 1 } })) ??
+    (await prisma.reminderSettings.findUnique({ where: { householdId } })) ??
     (await prisma.reminderSettings.create({
-      data: { id: 1, callMessageTemplate: DEFAULT_CALL_TEMPLATE },
+      data: { householdId, callMessageTemplate: DEFAULT_CALL_TEMPLATE },
     }));
 
   return {

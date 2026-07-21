@@ -6,16 +6,18 @@ import { ReportEditableTable } from "@/components/ReportEditableTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
 import { expiryStatusFor } from "@/lib/expiration";
+import { getHousehold } from "@/lib/household";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportPage() {
+  const household = await getHousehold();
   const meds = await prisma.medication.findMany({
-    where: { status: "active" },
+    where: { householdId: household.id, status: "active" },
     orderBy: [{ personName: "asc" }, { brandName: "asc" }],
   });
   const disposed = await prisma.medication.findMany({
-    where: { status: "disposed" },
+    where: { householdId: household.id, status: "disposed" },
     orderBy: { disposedAt: "desc" },
   });
 

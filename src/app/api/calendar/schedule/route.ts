@@ -9,6 +9,7 @@ import {
   serializeDoseTimes,
 } from "@/lib/doseTimes";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 type Body = {
@@ -21,6 +22,7 @@ type Body = {
 };
 
 export async function POST(request: NextRequest) {
+  const household = await getHousehold();
   let body: Body;
   try {
     body = (await request.json()) as Body;
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest) {
     where: { id: medicationId },
   });
 
-  if (!medication || medication.status !== "active") {
+  if (!medication || medication.householdId !== household.id || medication.status !== "active") {
     return NextResponse.json(
       { error: "That cabinet medication was not found." },
       { status: 404 },
@@ -87,6 +89,7 @@ export async function POST(request: NextRequest) {
 
   const prescription = await prisma.prescription.create({
     data: {
+      householdId: household.id,
       medicationId,
       dosesPerDay,
       pillsPerDose,

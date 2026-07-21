@@ -5,6 +5,7 @@
 import { logActivity } from "@/lib/activity";
 import { resetAllLights } from "@/lib/cabinetBoard";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextResponse } from "next/server";
 
 /* Sample data kept in case a preloaded demo is ever wanted again — currently
@@ -59,13 +60,14 @@ const DEMO_MEDICATIONS = [
 */
 
 export async function POST() {
-  await prisma.reminderCallLog.deleteMany();
-  await prisma.usageLog.deleteMany();
-  await prisma.prescription.deleteMany();
-  await prisma.activityEvent.deleteMany();
-  await prisma.medication.deleteMany();
+  const household = await getHousehold();
+  await prisma.reminderCallLog.deleteMany({ where: { householdId: household.id } });
+  await prisma.usageLog.deleteMany({ where: { householdId: household.id } });
+  await prisma.prescription.deleteMany({ where: { householdId: household.id } });
+  await prisma.activityEvent.deleteMany({ where: { householdId: household.id } });
+  await prisma.medication.deleteMany({ where: { householdId: household.id } });
   void resetAllLights();
 
-  void logActivity("demo_reset", { detail: "wiped to empty cabinet" });
+  void logActivity(household.id, "demo_reset", { detail: "wiped to empty cabinet" });
   return NextResponse.json({ ok: true, medications: 0 });
 }

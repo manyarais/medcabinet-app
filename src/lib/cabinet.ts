@@ -12,10 +12,12 @@ import { prisma } from "@/lib/db";
 export type OccupancyMap = Map<number, { id: number; brandName: string }>;
 
 export async function getOccupiedCompartments(
+  householdId: string,
   excludeMedicationId?: number,
 ): Promise<OccupancyMap> {
   const medications = await prisma.medication.findMany({
     where: {
+      householdId,
       compartment: { not: null },
       ...(excludeMedicationId != null ? { id: { not: excludeMedicationId } } : {}),
     },

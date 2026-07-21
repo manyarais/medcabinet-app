@@ -1,9 +1,11 @@
 // GET /api/symptoms/history — recent symptom "I took this" logs (symptom not null).
 
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
+  const household = await getHousehold();
   const limitParam = Number(request.nextUrl.searchParams.get("limit"));
   const limit =
     Number.isInteger(limitParam) && limitParam > 0
@@ -12,6 +14,7 @@ export async function GET(request: NextRequest) {
 
   const logs = await prisma.usageLog.findMany({
     where: {
+      householdId: household.id,
       symptom: { not: null },
     },
     include: { medication: true },

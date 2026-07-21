@@ -9,6 +9,7 @@ import {
 import { isActiveScheduleOnDate } from "@/lib/calendarSchedule";
 import { parseDoseTimes } from "@/lib/doseTimes";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export type CalendarDose = {
@@ -27,6 +28,7 @@ export type CalendarDose = {
 };
 
 export async function GET(request: NextRequest) {
+  const household = await getHousehold();
   const dateParam = request.nextUrl.searchParams.get("date")?.trim() ?? todayLocal();
 
   if (!isValidDateString(dateParam)) {
@@ -37,6 +39,7 @@ export async function GET(request: NextRequest) {
   }
 
   const prescriptions = await prisma.prescription.findMany({
+    where: { householdId: household.id },
     include: { medication: true },
     orderBy: [{ startDate: "asc" }, { id: "asc" }],
   });
@@ -54,6 +57,7 @@ export async function GET(request: NextRequest) {
       ? []
       : await prisma.usageLog.findMany({
           where: {
+            householdId: household.id,
             medicationId: { in: medicationIds },
             symptom: null,
             takenAt: { gte: start, lte: end },

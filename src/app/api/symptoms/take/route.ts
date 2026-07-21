@@ -1,6 +1,7 @@
 // POST /api/symptoms/take — create a UsageLog when the user taps "I took this".
 
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 type Body = {
@@ -9,6 +10,8 @@ type Body = {
 };
 
 export async function POST(request: NextRequest) {
+  const household = await getHousehold();
+
   let body: Body;
   try {
     body = (await request.json()) as Body;
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   const medication = await prisma.medication.findUnique({ where: { id: medicationId } });
-  if (!medication) {
+  if (!medication || medication.householdId !== household.id) {
     return NextResponse.json({ error: "Medication not found." }, { status: 404 });
   }
 
@@ -43,6 +46,7 @@ export async function POST(request: NextRequest) {
   const [usageLog] = await prisma.$transaction([
     prisma.usageLog.create({
       data: {
+        householdId: household.id,
         medicationId,
         symptom,
       },

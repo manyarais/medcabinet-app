@@ -82,13 +82,16 @@ export function inferRxScheduleFromLabel(
  * If this is an Rx med in a cabinet bay with no schedule yet, create one from
  * the label so it shows on the calendar.
  */
-export async function ensureRxCalendarSchedule(medicationId: number): Promise<boolean> {
+export async function ensureRxCalendarSchedule(
+  householdId: string,
+  medicationId: number,
+): Promise<boolean> {
   const medication = await prisma.medication.findUnique({
     where: { id: medicationId },
     include: { prescriptions: { select: { id: true }, take: 1 } },
   });
 
-  if (!medication) return false;
+  if (!medication || medication.householdId !== householdId) return false;
   if (medication.productType !== "PRESCRIPTION") return false;
   if (medication.status !== "active") return false;
   if (medication.compartment == null) return false;
@@ -97,6 +100,7 @@ export async function ensureRxCalendarSchedule(medicationId: number): Promise<bo
   const inferred = inferRxScheduleFromLabel(medication.dosage);
   await prisma.prescription.create({
     data: {
+      householdId,
       medicationId,
       dosesPerDay: inferred.dosesPerDay,
       pillsPerDose: inferred.pillsPerDose,

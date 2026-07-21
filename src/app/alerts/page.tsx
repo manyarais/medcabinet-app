@@ -6,6 +6,7 @@ import { MedMetaChips } from "@/components/MedMetaChips";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { getAttentionSnapshot } from "@/lib/attention";
 import type { DeviceLinkStatus } from "@/lib/hardwareStatus";
+import { getHousehold } from "@/lib/household";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,8 @@ function DeviceChip({
 }
 
 export default async function AlertsPage() {
-  const { alerts, hardware } = await getAttentionSnapshot();
+  const household = await getHousehold();
+  const { alerts, hardware } = await getAttentionSnapshot(household.id);
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-6">

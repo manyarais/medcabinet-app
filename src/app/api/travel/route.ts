@@ -5,9 +5,11 @@
 import { logActivity } from "@/lib/activity";
 import { flashCompartment } from "@/lib/cabinetBoard";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
+  const household = await getHousehold();
   let action: string;
   let ids: number[];
   try {
@@ -25,7 +27,7 @@ export async function POST(request: NextRequest) {
   }
 
   const meds = await prisma.medication.findMany({
-    where: { id: { in: ids }, status: "active" },
+    where: { householdId: household.id, id: { in: ids }, status: "active" },
   });
   if (meds.length === 0) {
     return NextResponse.json({ error: "No matching medications." }, { status: 404 });
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   const packing = action === "pack";
   await prisma.medication.updateMany({
-    where: { id: { in: meds.map((m) => m.id) } },
+    where: { householdId: household.id, id: { in: meds.map((m) => m.id) } },
     data: packing
       ? { outOfCabinet: true, outSince: new Date() }
       : { outOfCabinet: false, outSince: null },
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
 
   const flashed: number[] = [];
   for (const med of meds) {
-    void logActivity(packing ? "travel_pack" : "travel_return", {
+    void logActivity(household.id, packing ? "travel_pack" : "travel_return", {
       medicationId: med.id,
       compartment: med.compartment,
       detail: med.brandName,

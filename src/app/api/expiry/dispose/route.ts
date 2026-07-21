@@ -4,9 +4,11 @@
 
 import { logActivity } from "@/lib/activity";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
+  const household = await getHousehold();
   let id: number;
   try {
     const body = (await request.json()) as { id?: number };
@@ -19,7 +21,7 @@ export async function POST(request: NextRequest) {
   }
 
   const existing = await prisma.medication.findUnique({ where: { id } });
-  if (!existing) {
+  if (!existing || existing.householdId !== household.id) {
     return NextResponse.json({ error: "Medication not found." }, { status: 404 });
   }
 
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  void logActivity("disposed", {
+  void logActivity(household.id, "disposed", {
     medicationId: id,
     compartment: freedCompartment,
     detail: medication.brandName,

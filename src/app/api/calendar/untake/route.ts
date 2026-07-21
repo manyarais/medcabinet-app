@@ -6,6 +6,7 @@ import {
   todayLocal,
 } from "@/lib/dates";
 import { prisma } from "@/lib/db";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 type Body = {
@@ -14,6 +15,8 @@ type Body = {
 };
 
 export async function POST(request: NextRequest) {
+  const household = await getHousehold();
+
   let body: Body;
   try {
     body = (await request.json()) as Body;
@@ -39,9 +42,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const medication = await prisma.medication.findUnique({ where: { id: medicationId } });
+  if (!medication || medication.householdId !== household.id) {
+    return NextResponse.json({ error: "Medication not found." }, { status: 404 });
+  }
+
   const { start, end } = dayBoundsLocal(date);
   const latest = await prisma.usageLog.findFirst({
     where: {
+      householdId: household.id,
       medicationId,
       symptom: null,
       takenAt: { gte: start, lte: end },
@@ -60,6 +69,7 @@ export async function POST(request: NextRequest) {
 
   const takenCount = await prisma.usageLog.count({
     where: {
+      householdId: household.id,
       medicationId,
       symptom: null,
       takenAt: { gte: start, lte: end },

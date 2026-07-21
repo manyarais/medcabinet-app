@@ -7,10 +7,13 @@ import {
 } from "@/lib/cabinet";
 import { prisma } from "@/lib/db";
 import { ensureRxCalendarSchedule } from "@/lib/rxScheduleFromLabel";
+import { getHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
+  const household = await getHousehold();
   const medications = await prisma.medication.findMany({
+    where: { householdId: household.id },
     orderBy: [{ compartment: "asc" }, { brandName: "asc" }],
   });
   return NextResponse.json({ medications });
@@ -29,6 +32,7 @@ type AddBody = {
 };
 
 export async function POST(request: NextRequest) {
+  const household = await getHousehold();
   let body: AddBody;
 
   try {
@@ -47,14 +51,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "compartment is required." }, { status: 400 });
   }
 
-  const occupied = await getOccupiedCompartments();
+  const occupied = await getOccupiedCompartments(household.id);
   const check = validateAssignableCompartment(compartment, occupied);
   if (!check.ok) {
     return NextResponse.json({ error: check.error }, { status: check.status });
   }
 
   // Avoid duplicate cabinet rows for the same brand (case-insensitive).
-  const existing = await prisma.medication.findMany();
+  const existing = await prisma.medication.findMany({ where: { householdId: household.id } });
   const duplicate = existing.find(
     (med) => med.brandName.toLowerCase() === brandName.toLowerCase(),
   );
@@ -70,6 +74,7 @@ export async function POST(request: NextRequest) {
   try {
     const medication = await prisma.medication.create({
       data: {
+        householdId: household.id,
         brandName,
         genericName: body.genericName?.trim() || null,
         productType: body.productType?.trim() || "UNKNOWN",
@@ -84,7 +89,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    await ensureRxCalendarSchedule(medication.id);
+    await ensureRxCalendarSchedule(household.id, medication.id);
 
     return NextResponse.json({ medication }, { status: 201 });
   } catch (error) {

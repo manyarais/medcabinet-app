@@ -16,12 +16,14 @@ export type ActivityType =
   | "demo_reset";
 
 export async function logActivity(
+  householdId: string,
   type: ActivityType,
   extra: { medicationId?: number | null; compartment?: number | null; detail?: string } = {},
 ): Promise<void> {
   try {
     await prisma.activityEvent.create({
       data: {
+        householdId,
         type,
         medicationId: extra.medicationId ?? null,
         compartment: extra.compartment ?? null,

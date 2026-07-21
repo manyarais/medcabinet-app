@@ -25,12 +25,13 @@ export type AttentionSnapshot = {
   pendingScanCount: number;
 };
 
-export async function getAttentionSnapshot(): Promise<AttentionSnapshot> {
+export async function getAttentionSnapshot(householdId: string): Promise<AttentionSnapshot> {
   const [meds, pendingScanCount, hardware, prescriptions] = await Promise.all([
-    prisma.medication.findMany({ where: { status: "active" } }),
-    prisma.medication.count({ where: { status: "pending_review" } }),
-    getHardwareStatus(),
+    prisma.medication.findMany({ where: { householdId, status: "active" } }),
+    prisma.medication.count({ where: { householdId, status: "pending_review" } }),
+    getHardwareStatus(householdId),
     prisma.prescription.findMany({
+      where: { householdId },
       select: { medicationId: true, endDate: true },
     }),
   ]);

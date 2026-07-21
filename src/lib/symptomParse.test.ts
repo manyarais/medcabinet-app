@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  extractSymptomsHeuristically,
   filterExtractedSymptoms,
   looksLikeNaturalLanguage,
+  resolveSymptomsForMatch,
 } from "@/lib/symptomParse";
 
 describe("symptomParse helpers", () => {
@@ -25,5 +27,20 @@ describe("symptomParse helpers", () => {
         "ibuprofen",
       ]),
     ).toEqual(["headache", "nasal congestion"]);
+  });
+
+  it("heuristically extracts headache from a sentence", () => {
+    expect(extractSymptomsHeuristically("i am having a headache")).toEqual([
+      "headache",
+    ]);
+  });
+
+  it("resolveSymptomsForMatch prefers AI then heuristic over raw sentence", () => {
+    expect(resolveSymptomsForMatch("i am having a headache", null)).toEqual([
+      "headache",
+    ]);
+    expect(
+      resolveSymptomsForMatch("i am having a headache", ["headache"]),
+    ).toEqual(["headache"]);
   });
 });

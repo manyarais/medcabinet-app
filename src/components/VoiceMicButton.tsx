@@ -1,8 +1,8 @@
 "use client";
 
 // Browser Web Speech API mic. Hidden when unsupported / non-secure.
-// Mobile (esp. iOS Safari) is buggy: isFinal often never fires, and stop()
-// may leave the mic on — we accumulate all transcripts and force-abort.
+// Mobile WebKit often refuses a second start() after abort() — use stop(),
+// wait for onend, and cooldown before the next session.
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 
@@ -17,7 +17,6 @@ type SpeechRecognitionLike = {
   onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   onend: (() => void) | null;
-  onaudiostart?: (() => void) | null;
 };
 
 type SpeechRecognitionResultEventLike = {
@@ -46,11 +45,13 @@ function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
 
 function isAppleBrowser() {
   if (typeof navigator === "undefined") return false;
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.vendor?.includes("Apple") === true &&
       !navigator.userAgent.includes("Chrome") &&
       !navigator.userAgent.includes("CriOS") &&
-      !navigator.userAgent.includes("FxiOS"));
+      !navigator.userAgent.includes("FxiOS"))
+  );
 }
 
 function isMobileUa() {
@@ -58,7 +59,6 @@ function isMobileUa() {
   return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 }
 
-/** Rebuild full transcript — mobile Safari often never sets isFinal. */
 function transcriptFromEvent(event: SpeechRecognitionResultEventLike): string {
   let text = "";
   for (let i = 0; i < event.results.length; i++) {
@@ -85,6 +85,10 @@ function errorMessage(code: string): string | null {
   }
 }
 
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 type Props = {
   onTranscript: (text: string) => void;
   onFinal?: (text: string) => void;
@@ -108,6 +112,7 @@ export function VoiceMicButton({
   const manualStopRef = useRef(false);
   const sessionRef = useRef(0);
   const startingRef = useRef(false);
+  const cooldownUntilRef = useRef(0);
 
   useEffect(() => {
     onTranscriptRef.current = onTranscript;
@@ -128,9 +133,14 @@ export function VoiceMicButton({
   useEffect(() => {
     return () => {
       sessionRef.current += 1;
-      forceStopRecognition();
+      const recognition = recognitionRef.current;
+      recognitionRef.current = null;
+      try {
+        recognition?.abort();
+      } catch {
+        // ignore
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!supported) return null;
@@ -142,40 +152,35 @@ export function VoiceMicButton({
     onFinalRef.current?.(text);
   }
 
-  function forceStopRecognition() {
-    const recognition = recognitionRef.current;
-    if (!recognition) return;
-    // iOS Safari often ignores stop() unless start() is poked first.
-    if (isAppleBrowser()) {
-      try {
-        recognition.start();
-      } catch {
-        // already started
-      }
-    }
-    try {
-      recognition.abort();
-    } catch {
-      try {
-        recognition.stop();
-      } catch {
-        // ignore
-      }
-    }
+  function endSessionUi() {
+    startingRef.current = false;
+    setListening(false);
     recognitionRef.current = null;
+    // WebKit needs a beat before the next start() will succeed.
+    cooldownUntilRef.current = Date.now() + (isAppleBrowser() || isMobileUa() ? 600 : 250);
   }
 
   function stopListening() {
     manualStopRef.current = true;
     startingRef.current = false;
     sessionRef.current += 1;
-    forceStopRecognition();
+    const recognition = recognitionRef.current;
+    recognitionRef.current = null;
     setListening(false);
     emitFinalIfNeeded();
+    try {
+      recognition?.stop();
+    } catch {
+      try {
+        recognition?.abort();
+      } catch {
+        // ignore
+      }
+    }
+    cooldownUntilRef.current = Date.now() + (isAppleBrowser() || isMobileUa() ? 600 : 250);
   }
 
   async function ensureMicPermission(): Promise<boolean> {
-    // getUserMedia + SpeechRecognition fight over the audio session on iOS.
     if (isAppleBrowser()) return true;
     if (!navigator.mediaDevices?.getUserMedia) return true;
     try {
@@ -194,6 +199,12 @@ export function VoiceMicButton({
     if (startingRef.current || listening) return;
     startingRef.current = true;
     manualStopRef.current = false;
+
+    const wait = cooldownUntilRef.current - Date.now();
+    if (wait > 0) {
+      await delay(wait);
+    }
+
     const session = ++sessionRef.current;
 
     const Ctor = getSpeechRecognitionCtor();
@@ -215,10 +226,23 @@ export function VoiceMicButton({
       return;
     }
 
-    forceStopRecognition();
+    // Drop any stale instance without the Apple start-then-abort poke (that
+    // pattern often blocks the *next* start on iOS).
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null;
+      await delay(300);
+      if (session !== sessionRef.current) {
+        startingRef.current = false;
+        return;
+      }
+    }
 
     const recognition = new Ctor();
-    // continuous false + interim true is the least-bad combo across mobile.
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = "en-US";
@@ -236,7 +260,6 @@ export function VoiceMicButton({
       lastTextRef.current = text;
       onTranscriptRef.current(text);
 
-      // Desktop Chrome marks finals; still call onFinal once for those.
       let anyFinal = false;
       for (let i = 0; i < event.results.length; i++) {
         if (event.results[i]?.isFinal) anyFinal = true;
@@ -248,54 +271,75 @@ export function VoiceMicButton({
 
     recognition.onerror = (event) => {
       if (session !== sessionRef.current) return;
-      startingRef.current = false;
-      setListening(false);
+      endSessionUi();
       const msg = errorMessage(event.error);
       if (msg) setToast(msg);
     };
 
     recognition.onend = () => {
       if (session !== sessionRef.current) return;
-      startingRef.current = false;
-      setListening(false);
-      recognitionRef.current = null;
-
-      // Mobile often ends without isFinal — treat end as final commit.
+      endSessionUi();
       if (!manualStopRef.current) {
         emitFinalIfNeeded();
       }
-
       if (!lastTextRef.current && !manualStopRef.current) {
         setToast((prev) => prev ?? "No words caught — tap mic and speak again.");
       }
     };
 
-    try {
+    const tryStart = () => {
       recognition.start();
+    };
+
+    try {
+      tryStart();
+    } catch {
+      // Second attempt after cooldown — common after a prior abort on mobile.
+      await delay(500);
       if (session !== sessionRef.current) {
-        forceStopRecognition();
         startingRef.current = false;
         return;
       }
-      setListening(true);
-      setToast(null);
-      startingRef.current = false;
-    } catch {
-      startingRef.current = false;
-      setListening(false);
-      setToast("Could not start voice input. Try again.");
+      try {
+        tryStart();
+      } catch {
+        startingRef.current = false;
+        setListening(false);
+        recognitionRef.current = null;
+        setToast("Could not start voice input. Tap again in a moment.");
+        return;
+      }
     }
+
+    if (session !== sessionRef.current) {
+      try {
+        recognition.abort();
+      } catch {
+        // ignore
+      }
+      startingRef.current = false;
+      return;
+    }
+
+    setListening(true);
+    setToast(null);
+    startingRef.current = false;
   }
 
   function handleClick(event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
     if (disabled) return;
-    if (listening || startingRef.current) {
+    if (listening) {
       stopListening();
-    } else {
-      void startListening();
+      return;
     }
+    // If a start is in flight, cancel it instead of ignoring the tap.
+    if (startingRef.current) {
+      stopListening();
+      return;
+    }
+    void startListening();
   }
 
   return (
@@ -315,10 +359,7 @@ export function VoiceMicButton({
       >
         {listening ? (
           <>
-            <span
-              className="h-3 w-3 rounded-[2px] bg-current"
-              aria-hidden
-            />
+            <span className="h-3 w-3 rounded-[2px] bg-current" aria-hidden />
             <span>Stop</span>
           </>
         ) : (

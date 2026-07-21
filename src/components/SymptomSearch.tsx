@@ -4,7 +4,10 @@
 
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { VoiceMicButton } from "@/components/VoiceMicButton";
-import { looksLikeNaturalLanguage } from "@/lib/symptomParse";
+import {
+  looksLikeNaturalLanguage,
+  resolveSymptomsForMatch,
+} from "@/lib/symptomParse";
 import { FormEvent, useEffect, useState } from "react";
 
 type Match = {
@@ -149,17 +152,8 @@ export function SymptomSearch() {
     // Multi-word: extract-only parse, then deterministic match per term.
     // PRODUCT SAFETY: AI never picks meds — only symptom strings for label search.
     const parsed = await tryParseSymptoms(trimmed);
-    if (parsed == null) {
-      // Key missing / timeout / failure — silent fallback to raw input.
-      await matchSymptoms([trimmed], options);
-      return;
-    }
-    if (parsed.length === 0) {
-      // Nothing extractable (e.g. only a drug question) — fall back to raw.
-      await matchSymptoms([trimmed], options);
-      return;
-    }
-    await matchSymptoms(parsed, options);
+    const symptoms = resolveSymptomsForMatch(trimmed, parsed);
+    await matchSymptoms(symptoms, options);
   }
 
   async function handleSubmit(event: FormEvent) {

@@ -3,19 +3,47 @@
 // It must NEVER select, rank, suggest, or name medications.
 // Cabinet matching stays in matchOtcCabinetMeds / /api/symptoms.
 
-const PARSE_TIMEOUT_MS = 3000;
+const PARSE_TIMEOUT_MS = 5000;
 
 const SYSTEM_PROMPT = `You extract symptom terms from patient free text for a household medicine-cabinet app.
 
 STRICT RULES:
 - Return ONLY symptom / complaint terms suitable for matching FDA OTC drug-label "uses" / indications text.
-- Normalize colloquial language to plain clinical label vocabulary (examples: "stuffed up" → "nasal congestion", "head pounding" → "headache", "can't sleep" → "insomnia", "tummy ache" → "stomach pain").
+- Normalize colloquial language to plain clinical label vocabulary (examples: "stuffed up" → "nasal congestion", "head pounding" → "headache", "i am having a headache" → "headache", "can't sleep" → "insomnia", "tummy ache" → "stomach pain").
 - Output strict JSON only: {"symptoms":["..."]} with lowercase strings, no duplicates.
 - Return {"symptoms":[]} if no symptoms are present.
 - NEVER include medication or product names (Advil, Tylenol, ibuprofen, etc.).
 - NEVER give advice, diagnoses, treatment suggestions, or answers to "what should I take".
 - If the user only asks for a drug recommendation, return {"symptoms":[]}.
 - No markdown, no explanation — JSON object only.`;
+
+/** Longer phrases first so "nasal congestion" wins over "congestion". */
+const KNOWN_SYMPTOM_PHRASES = [
+  "nasal congestion",
+  "runny nose",
+  "sore throat",
+  "stomach pain",
+  "muscle pain",
+  "joint pain",
+  "chest congestion",
+  "headache",
+  "migraine",
+  "fever",
+  "cough",
+  "insomnia",
+  "heartburn",
+  "nausea",
+  "allergy",
+  "allergies",
+  "congestion",
+  "sinus",
+  "cold",
+  "flu",
+  "ache",
+  "pain",
+  "itch",
+  "rash",
+] as const;
 
 export type ParsedSymptoms = {
   symptoms: string[];
@@ -55,8 +83,25 @@ export function filterExtractedSymptoms(symptoms: string[]): string[] {
 }
 
 /**
+ * Offline fallback when Gemini is unset/fails: pull known label-friendly
+ * symptom phrases out of the free text (still not medication advice).
+ */
+export function extractSymptomsHeuristically(text: string): string[] {
+  const lower = text.toLowerCase();
+  const found: string[] = [];
+  for (const phrase of KNOWN_SYMPTOM_PHRASES) {
+    if (!lower.includes(phrase)) continue;
+    const normalized = phrase === "allergies" ? "allergy" : phrase;
+    // Phrases are longest-first; skip short tokens already covered (ache ⊂ headache).
+    if (found.some((f) => f.includes(normalized))) continue;
+    found.push(normalized);
+  }
+  return filterExtractedSymptoms(found);
+}
+
+/**
  * Call Gemini to extract symptoms only.
- * Returns null when unset key / timeout / failure — callers fall back to raw text.
+ * Returns null when unset key / timeout / failure — callers fall back.
  */
 export async function extractSymptomsFromText(
   text: string,
@@ -133,4 +178,22 @@ export function looksLikeNaturalLanguage(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) return false;
   return /\s/.test(trimmed);
+}
+
+/**
+ * Resolve which symptom strings to match against cabinet labels.
+ * Prefer Gemini extracts; else heuristic phrases; never use a full sentence
+ * as the needle (labels contain "headache", not "i am having a headache").
+ */
+export function resolveSymptomsForMatch(
+  rawInput: string,
+  parsedFromAi: string[] | null,
+): string[] {
+  if (parsedFromAi && parsedFromAi.length > 0) {
+    return filterExtractedSymptoms(parsedFromAi);
+  }
+  const heuristic = extractSymptomsHeuristically(rawInput);
+  if (heuristic.length > 0) return heuristic;
+  const trimmed = rawInput.trim().toLowerCase();
+  return trimmed ? [trimmed] : [];
 }

@@ -17,6 +17,7 @@
     "reminders:watch": "node scripts/reminder-dispatch-watch.mjs"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.5.21",
     "@prisma/client": "^6.19.2",
     "dotenv": "^17.4.2",
     "next": "16.2.10",

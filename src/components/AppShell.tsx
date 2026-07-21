@@ -10,8 +10,10 @@ import { usePathname } from "next/navigation";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const printable = pathname.startsWith("/printable");
+  const authPage =
+    pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
 
-  if (printable) {
+  if (printable || authPage) {
     return <>{children}</>;
   }
 

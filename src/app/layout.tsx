@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/AppShell";
 import { OfflineProvider } from "@/components/OfflineProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -56,11 +57,17 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body className="flex min-h-full flex-col bg-[var(--background)] text-[var(--text-primary)]">
-        <ThemeProvider>
-          <OfflineProvider>
-            <AppShell>{children}</AppShell>
-          </OfflineProvider>
-        </ThemeProvider>
+        <ClerkProvider
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+          afterSignOutUrl="/sign-in"
+        >
+          <ThemeProvider>
+            <OfflineProvider>
+              <AppShell>{children}</AppShell>
+            </OfflineProvider>
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

@@ -2,12 +2,15 @@
 
 // Add a finite prescription schedule on an Rx medication detail page (Phase 5).
 
+import { ReconnectHint } from "@/components/ReconnectHint";
+import { useOffline } from "@/components/OfflineProvider";
 import { todayLocal } from "@/lib/dates";
 import {
   defaultDoseTimes,
   formatDoseTimeDisplay,
   parseDoseTimes,
 } from "@/lib/doseTimes";
+import { RECONNECT_TO_CHANGE } from "@/lib/offline";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
@@ -27,6 +30,7 @@ type Props = {
 };
 
 export function AddPrescriptionForm({ medicationId, brandName, schedules }: Props) {
+  const { online } = useOffline();
   const router = useRouter();
   const today = todayLocal();
   const [dosesPerDay, setDosesPerDay] = useState(2);
@@ -60,6 +64,12 @@ export function AddPrescriptionForm({ medicationId, brandName, schedules }: Prop
     event.preventDefault();
     setError(null);
     setMessage(null);
+
+    if (!navigator.onLine) {
+      setError(RECONNECT_TO_CHANGE);
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -92,6 +102,7 @@ export function AddPrescriptionForm({ medicationId, brandName, schedules }: Prop
   return (
     <div className="flex flex-col gap-3 rounded border border-zinc-200 bg-white p-4">
       <h2 className="text-sm font-semibold text-zinc-900">Prescription schedule</h2>
+      {!online && <ReconnectHint />}
       <p className="text-xs text-zinc-500">
         Reminder only — this app does not advise on dosing. Set times for each dose.
       </p>
@@ -192,7 +203,7 @@ export function AddPrescriptionForm({ medicationId, brandName, schedules }: Prop
 
         <button
           type="submit"
-          disabled={isSaving}
+          disabled={!online || isSaving}
           className="rounded bg-zinc-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
           {isSaving ? "Saving…" : "Save schedule"}

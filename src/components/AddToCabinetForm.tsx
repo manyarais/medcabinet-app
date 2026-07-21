@@ -3,7 +3,10 @@
 // Add-to-cabinet form on the medication detail page (Phase 2).
 // Warns when the chosen compartment is already occupied; never overwrites.
 
+import { ReconnectHint } from "@/components/ReconnectHint";
+import { useOffline } from "@/components/OfflineProvider";
 import { assignableCompartments, getCompartmentConfig } from "@/lib/compartments";
+import { RECONNECT_TO_CHANGE } from "@/lib/offline";
 import type { DrugResult } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
@@ -16,6 +19,7 @@ type Props = {
 };
 
 export function AddToCabinetForm({ drug, occupied }: Props) {
+  const { online } = useOffline();
   const router = useRouter();
   const slots = useMemo(() => assignableCompartments(), []);
   const occupiedMap = useMemo(() => {
@@ -39,6 +43,11 @@ export function AddToCabinetForm({ drug, occupied }: Props) {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+
+    if (!navigator.onLine) {
+      setError(RECONNECT_TO_CHANGE);
+      return;
+    }
 
     if (occupantName) {
       setError(
@@ -91,12 +100,14 @@ export function AddToCabinetForm({ drug, occupied }: Props) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border border-zinc-200 bg-white p-4">
       <h2 className="text-sm font-semibold text-zinc-900">Add to cabinet</h2>
+      {!online && <ReconnectHint />}
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium text-zinc-700">Compartment</span>
         <select
           value={compartment}
           onChange={(event) => setCompartment(Number(event.target.value))}
+          disabled={!online}
           className="rounded border border-zinc-300 px-2 py-2"
         >
           {slots.map((n) => {
@@ -125,6 +136,7 @@ export function AddToCabinetForm({ drug, occupied }: Props) {
           value={expirationDate}
           onChange={(event) => setExpirationDate(event.target.value)}
           placeholder="e.g. 2027-03"
+          disabled={!online}
           className="rounded border border-zinc-300 px-2 py-2"
         />
       </label>
@@ -137,7 +149,7 @@ export function AddToCabinetForm({ drug, occupied }: Props) {
 
       <button
         type="submit"
-        disabled={isSaving || Boolean(occupantName)}
+        disabled={!online || isSaving || Boolean(occupantName)}
         className="rounded bg-zinc-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
       >
         {isSaving ? "Saving…" : "Save to cabinet"}

@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/AppShell";
+import { OfflineProvider } from "@/components/OfflineProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -19,6 +20,7 @@ export const metadata: Metadata = {
   description:
     "Pillio — smart medicine cabinet companion. Search medications and manage your cabinet.",
   applicationName: "Pillio",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Pillio",
@@ -55,7 +57,9 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-full flex-col bg-[var(--background)] text-[var(--text-primary)]">
         <ThemeProvider>
-          <AppShell>{children}</AppShell>
+          <OfflineProvider>
+            <AppShell>{children}</AppShell>
+          </OfflineProvider>
         </ThemeProvider>
       </body>
     </html>

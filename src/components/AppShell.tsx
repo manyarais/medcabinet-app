@@ -1,5 +1,6 @@
 "use client";
 
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { TabBar } from "@/components/ui/TabBar";
 import Image from "next/image";
 import Link from "next/link";
@@ -45,6 +46,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
       </header>
+
+      <OfflineBanner />
 
       <div className="flex flex-1 flex-col pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
         {children}

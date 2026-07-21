@@ -1,5 +1,7 @@
 "use client";
 
+import { useOffline } from "@/components/OfflineProvider";
+import { RECONNECT_TO_CHANGE } from "@/lib/offline";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -14,11 +16,16 @@ export function CabinetOutToggleButton({
   brandName,
   outOfCabinet,
 }: Props) {
+  const { online } = useOffline();
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleClick() {
+    if (!navigator.onLine) {
+      setError(RECONNECT_TO_CHANGE);
+      return;
+    }
     setIsSaving(true);
     setError(null);
 
@@ -43,10 +50,15 @@ export function CabinetOutToggleButton({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      {!online && (
+        <p className="text-[10px] leading-tight text-amber-900" role="status">
+          {RECONNECT_TO_CHANGE}
+        </p>
+      )}
       <button
         type="button"
         onClick={handleClick}
-        disabled={isSaving}
+        disabled={!online || isSaving}
         aria-label={`${outOfCabinet ? "Put back" : "Take out"} ${brandName}`}
         className={`inline-flex min-h-8 w-full items-center justify-center rounded-full px-2.5 text-[11px] font-semibold transition duration-150 active:scale-95 disabled:opacity-50 ${
           outOfCabinet

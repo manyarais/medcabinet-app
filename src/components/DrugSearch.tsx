@@ -4,6 +4,11 @@
 
 import { InstacartReorderButton } from "@/components/InstacartReorderButton";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
+import { useOffline } from "@/components/OfflineProvider";
+import {
+  fetchCachedCabinet,
+  searchCabinetLocally,
+} from "@/lib/cabinetLocal";
 import {
   purposeOneLine,
   refineCatalogResults,
@@ -37,6 +42,7 @@ type FdaSearchResponse = {
 };
 
 export function DrugSearch({ variant = "default" }: { variant?: "default" | "pill" }) {
+  const { online } = useOffline();
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [cabinetResults, setCabinetResults] = useState<CabinetHit[] | null>(null);
@@ -45,6 +51,7 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
   const [cabinetLoading, setCabinetLoading] = useState(false);
   const [fdaLoading, setFdaLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fdaNeedsConnection, setFdaNeedsConnection] = useState(false);
   const [showCatalog, setShowCatalog] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -54,6 +61,7 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
 
     setSubmittedQuery(trimmed);
     setError(null);
+    setFdaNeedsConnection(false);
     setCabinetResults(null);
     setCatalogResults(null);
     setNormalizedName(null);
@@ -62,50 +70,65 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
     setFdaLoading(true);
 
     // Cabinet first — do not wait for FDA.
-    const cabinetPromise = fetch(
-      `/api/cabinet/search?q=${encodeURIComponent(trimmed)}`,
-    )
-      .then(async (response) => {
+    const cabinetPromise = (async (): Promise<CabinetHit[]> => {
+      try {
+        if (!navigator.onLine) {
+          const meds = await fetchCachedCabinet();
+          if (!meds) {
+            setCabinetResults([]);
+            return [];
+          }
+          const results = searchCabinetLocally(meds, trimmed);
+          setCabinetResults(results);
+          if (results.length === 0) setShowCatalog(true);
+          return results;
+        }
+
+        const response = await fetch(
+          `/api/cabinet/search?q=${encodeURIComponent(trimmed)}`,
+        );
         const data = (await response.json()) as CabinetSearchResponse;
         if (!response.ok) {
           throw new Error(data.error ?? "Cabinet search failed.");
         }
-        return data;
-      })
-      .then((data) => {
         setCabinetResults(data.results);
         if (data.results.length === 0) {
           setShowCatalog(true);
         }
         return data.results;
-      })
-      .catch(() => {
+      } catch {
         setCabinetResults([]);
-        return [] as CabinetHit[];
-      })
-      .finally(() => {
+        return [];
+      } finally {
         setCabinetLoading(false);
-      });
+      }
+    })();
 
-    const fdaPromise = fetch(
-      `/api/drugs/search?q=${encodeURIComponent(trimmed)}&limit=25`,
-    )
-      .then(async (response) => {
+    const fdaPromise = (async (): Promise<FdaSearchResponse | null> => {
+      if (!navigator.onLine) {
+        setFdaNeedsConnection(true);
+        setCatalogResults([]);
+        setFdaLoading(false);
+        return null;
+      }
+      try {
+        const response = await fetch(
+          `/api/drugs/search?q=${encodeURIComponent(trimmed)}&limit=25`,
+        );
         const data = (await response.json()) as FdaSearchResponse;
         if (!response.ok) {
           throw new Error(data.error ?? "Search failed. Please try again.");
         }
         return data;
-      })
-      .catch((err: unknown) => {
+      } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Could not reach the search API.";
         setError(message);
         return null;
-      })
-      .finally(() => {
+      } finally {
         setFdaLoading(false);
-      });
+      }
+    })();
 
     const [owned, fda] = await Promise.all([cabinetPromise, fdaPromise]);
 
@@ -263,18 +286,31 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
                 </p>
               </div>
 
-              {fdaLoading && (
+              {fdaNeedsConnection && (
+                <p
+                  className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-4 text-center text-sm text-amber-950"
+                  role="status"
+                >
+                  Catalog search needs a connection. Reconnect to look up medications
+                  outside your cabinet.
+                </p>
+              )}
+
+              {fdaLoading && !fdaNeedsConnection && (
                 <p className="text-sm text-zinc-500" role="status">
                   Looking up via RxNorm + openFDA…
                 </p>
               )}
 
-              {catalogReady && !fdaLoading && catalogCount === 0 && (
-                <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
-                  No medications found for “{submittedQuery}” — check the spelling on the
-                  label.
-                </p>
-              )}
+              {catalogReady &&
+                !fdaLoading &&
+                !fdaNeedsConnection &&
+                catalogCount === 0 && (
+                  <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
+                    No medications found for “{submittedQuery}” — check the spelling on the
+                    label.
+                  </p>
+                )}
 
               {catalogReady && catalogCount > 0 && (
                 <ul className="flex flex-col gap-2">
@@ -302,7 +338,7 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
                         </Link>
                         <ProductTypeBadge productType={drug.productType} />
                       </div>
-                      {drug.productType === "OTC" && (
+                      {drug.productType === "OTC" && online && (
                         <div className="mt-3 flex flex-col gap-1.5 border-t border-zinc-100 pt-3">
                           <InstacartReorderButton
                             brandName={drug.brandName}

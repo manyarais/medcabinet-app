@@ -3,6 +3,8 @@
 // Month calendar for prescription dose reminders (Phase 5).
 // Google Calendar–style month grid + selected-day agenda with checkboxes.
 
+import { ReconnectHint } from "@/components/ReconnectHint";
+import { useOffline } from "@/components/OfflineProvider";
 import {
   buildMonthGrid,
   formatDisplayDate,
@@ -12,6 +14,7 @@ import {
   todayLocal,
 } from "@/lib/dates";
 import { formatDoseTimeDisplay } from "@/lib/doseTimes";
+import { RECONNECT_TO_CHANGE } from "@/lib/offline";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -78,6 +81,7 @@ function colorsForMed(medicationId: number) {
 }
 
 export function PrescriptionCalendar({ initialDate, reloadToken = 0 }: Props) {
+  const { online } = useOffline();
   const router = useRouter();
   const today = todayLocal();
   const initialYm = parseYearMonth(initialDate);
@@ -204,6 +208,10 @@ export function PrescriptionCalendar({ initialDate, reloadToken = 0 }: Props) {
 
   async function handleTake(dose: Dose) {
     if (!dayData || !dayData.isToday || dose.taken) return;
+    if (!navigator.onLine) {
+      setError(RECONNECT_TO_CHANGE);
+      return;
+    }
 
     const key = `${dose.medicationId}-${dose.prescriptionId}-${dose.doseIndex}`;
     setSavingKey(key);
@@ -233,6 +241,10 @@ export function PrescriptionCalendar({ initialDate, reloadToken = 0 }: Props) {
 
   async function handleUntake(dose: Dose) {
     if (!dayData || !dayData.isToday || !dose.taken) return;
+    if (!navigator.onLine) {
+      setError(RECONNECT_TO_CHANGE);
+      return;
+    }
 
     const key = `${dose.medicationId}-${dose.prescriptionId}-${dose.doseIndex}`;
     setSavingKey(key);
@@ -389,6 +401,8 @@ export function PrescriptionCalendar({ initialDate, reloadToken = 0 }: Props) {
           {formatDisplayDate(selectedDate)}
         </h3>
 
+        {!online && <div className="mt-3"><ReconnectHint /></div>}
+
         {readOnly && (
           <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
             {dayData?.isPast
@@ -435,7 +449,7 @@ export function PrescriptionCalendar({ initialDate, reloadToken = 0 }: Props) {
                   <input
                     type="checkbox"
                     checked={dose.taken}
-                    disabled={!interactive || savingKey === key}
+                    disabled={!online || !interactive || savingKey === key}
                     onChange={() => {
                       if (dose.taken) {
                         void handleUntake(dose);

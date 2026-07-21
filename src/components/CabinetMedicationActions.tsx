@@ -2,7 +2,10 @@
 
 // Edit + remove actions for a medication already stored in the cabinet (Phase 2).
 
+import { ReconnectHint } from "@/components/ReconnectHint";
+import { useOffline } from "@/components/OfflineProvider";
 import { assignableCompartments, getCompartmentConfig } from "@/lib/compartments";
+import { RECONNECT_TO_CHANGE } from "@/lib/offline";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
@@ -24,6 +27,7 @@ type Props = {
 };
 
 export function CabinetMedicationActions({ medication, occupied }: Props) {
+  const { online } = useOffline();
   const router = useRouter();
   const slots = useMemo(() => assignableCompartments(), []);
 
@@ -46,6 +50,11 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
     event.preventDefault();
     setError(null);
     setMessage(null);
+
+    if (!navigator.onLine) {
+      setError(RECONNECT_TO_CHANGE);
+      return;
+    }
 
     if (occupantElsewhere) {
       setError(
@@ -82,6 +91,10 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
   }
 
   async function handleRemove() {
+    if (!navigator.onLine) {
+      setError(RECONNECT_TO_CHANGE);
+      return;
+    }
     const confirmed = window.confirm(
       `Remove ${medication.brandName} permanently?\n\nUse this when the medication is expired or you are getting rid of it. This frees the compartment.\n\nUse Take out instead if you are only taking the bottle out for a moment and will put it back later.`,
     );
@@ -108,6 +121,10 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
   }
 
   async function handleToggleOut() {
+    if (!navigator.onLine) {
+      setError(RECONNECT_TO_CHANGE);
+      return;
+    }
     setIsTogglingOut(true);
     setError(null);
     setMessage(null);
@@ -138,6 +155,7 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
 
   return (
     <div className="flex flex-col gap-3 rounded border border-zinc-200 bg-white p-4">
+      {!online && <ReconnectHint />}
       <p className="text-xs text-zinc-500">
         <span className="font-medium text-zinc-700">Take out</span> = bottle is away for now
         (compartment stays reserved).{" "}
@@ -149,7 +167,7 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
         <button
           type="button"
           onClick={handleToggleOut}
-          disabled={isTogglingOut}
+          disabled={!online || isTogglingOut}
           className="rounded bg-zinc-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
           {isTogglingOut
@@ -165,14 +183,15 @@ export function CabinetMedicationActions({ medication, occupied }: Props) {
             setError(null);
             setMessage(null);
           }}
-          className="rounded border border-zinc-300 px-3 py-2 text-sm font-medium"
+          disabled={!online}
+          className="rounded border border-zinc-300 px-3 py-2 text-sm font-medium disabled:opacity-50"
         >
           {isEditing ? "Cancel edit" : "Edit"}
         </button>
         <button
           type="button"
           onClick={handleRemove}
-          disabled={isRemoving}
+          disabled={!online || isRemoving}
           className="rounded border border-red-300 px-3 py-2 text-sm font-medium text-red-800 disabled:opacity-50"
         >
           {isRemoving ? "Removing..." : "Remove permanently"}

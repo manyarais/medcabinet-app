@@ -2,8 +2,11 @@
 
 // Calendar page — schedule a reminder for a medication already in the cabinet.
 
+import { ReconnectHint } from "@/components/ReconnectHint";
+import { useOffline } from "@/components/OfflineProvider";
 import { todayLocal } from "@/lib/dates";
 import { defaultDoseTimes } from "@/lib/doseTimes";
+import { RECONNECT_TO_CHANGE } from "@/lib/offline";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
@@ -26,6 +29,7 @@ function medLabel(med: CabinetMed) {
 }
 
 export function AddCalendarScheduleForm({ onSaved }: Props) {
+  const { online } = useOffline();
   const today = todayLocal();
   const [open, setOpen] = useState(false);
   const [meds, setMeds] = useState<CabinetMed[]>([]);
@@ -107,6 +111,11 @@ export function AddCalendarScheduleForm({ onSaved }: Props) {
     setError(null);
     setMessage(null);
 
+    if (!navigator.onLine) {
+      setError(RECONNECT_TO_CHANGE);
+      return;
+    }
+
     const id = Number(medicationId);
     if (!Number.isInteger(id) || id < 1) {
       setError("Select a medication from your cabinet.");
@@ -179,6 +188,7 @@ export function AddCalendarScheduleForm({ onSaved }: Props) {
           onSubmit={handleSubmit}
           className="flex flex-col gap-3 border-t border-[var(--border)]/60 px-4 pb-4 pt-3"
         >
+          {!online && <ReconnectHint />}
           <p className="text-xs text-[var(--text-secondary)]">
             Reminder only — this app does not advise on dosing.
           </p>
@@ -299,7 +309,7 @@ export function AddCalendarScheduleForm({ onSaved }: Props) {
 
           <button
             type="submit"
-            disabled={isSaving || !medicationId || meds.length === 0}
+            disabled={!online || isSaving || !medicationId || meds.length === 0}
             className="btn-primary-fill min-h-11 rounded-2xl text-sm font-semibold disabled:opacity-50"
           >
             {isSaving ? "Saving…" : "Add to calendar"}

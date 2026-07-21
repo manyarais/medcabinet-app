@@ -3,7 +3,14 @@
 // Symptom lookup: optional NL parse (extract-only) → deterministic OTC label match.
 
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
+import { ReconnectHint } from "@/components/ReconnectHint";
+import { useOffline } from "@/components/OfflineProvider";
 import { VoiceMicButton } from "@/components/VoiceMicButton";
+import {
+  fetchCachedCabinet,
+  matchSymptomsAgainstCabinet,
+} from "@/lib/cabinetLocal";
+import { RECONNECT_TO_CHANGE } from "@/lib/offline";
 import {
   looksLikeNaturalLanguage,
   resolveSymptomsForMatch,
@@ -48,6 +55,7 @@ type SymptomGroup = {
 };
 
 export function SymptomSearch() {
+  const { online } = useOffline();
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +66,7 @@ export function SymptomSearch() {
   const [recent, setRecent] = useState<UsedBefore[]>([]);
 
   async function loadRecent() {
+    if (!navigator.onLine) return;
     try {
       const response = await fetch("/api/symptoms/history?limit=15");
       if (!response.ok) return;
@@ -74,6 +83,17 @@ export function SymptomSearch() {
   }, []);
 
   async function fetchMatches(symptom: string): Promise<SearchResponse | null> {
+    if (!navigator.onLine) {
+      const meds = await fetchCachedCabinet();
+      if (!meds) {
+        throw new Error(
+          "Offline and no cached cabinet yet. Open Pillio online once, then try again.",
+        );
+      }
+      const matches = matchSymptomsAgainstCabinet(meds, symptom);
+      return { symptom, matches, usedBefore: [] };
+    }
+
     const response = await fetch(
       `/api/symptoms?q=${encodeURIComponent(symptom)}`,
     );
@@ -86,6 +106,7 @@ export function SymptomSearch() {
 
   /** Try NL extract; on any failure return null so caller uses raw text. */
   async function tryParseSymptoms(text: string): Promise<string[] | null> {
+    if (!navigator.onLine) return null;
     try {
       const response = await fetch("/api/symptoms/parse", {
         method: "POST",
@@ -167,6 +188,10 @@ export function SymptomSearch() {
   }
 
   async function handleTake(match: Match, symptom: string) {
+    if (!navigator.onLine) {
+      setTakeMessage(RECONNECT_TO_CHANGE);
+      return;
+    }
     setTakingId(match.medicationId);
     setTakeMessage(null);
     try {
@@ -197,6 +222,7 @@ export function SymptomSearch() {
 
   return (
     <div className="flex flex-col gap-6">
+      {!online && <ReconnectHint />}
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
         <label htmlFor="symptom" className="sr-only">
           What are you feeling?
@@ -310,7 +336,7 @@ export function SymptomSearch() {
                         <button
                           type="button"
                           onClick={() => handleTake(match, group.symptom)}
-                          disabled={takingId === match.medicationId}
+                          disabled={!online || takingId === match.medicationId}
                           className="mt-4 min-h-11 rounded-2xl btn-primary-fill px-4 text-sm font-semibold transition duration-150 ease-out disabled:opacity-50"
                         >
                           {takingId === match.medicationId

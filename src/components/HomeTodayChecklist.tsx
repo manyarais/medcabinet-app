@@ -2,8 +2,11 @@
 
 // Home — today's prescription doses with the same take/untake checkboxes as Calendar.
 
+import { ReconnectHint } from "@/components/ReconnectHint";
+import { useOffline } from "@/components/OfflineProvider";
 import { formatDoseTimeDisplay } from "@/lib/doseTimes";
 import { todayLocal } from "@/lib/dates";
+import { RECONNECT_TO_CHANGE } from "@/lib/offline";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -36,6 +39,7 @@ function canUntakeDose(dose: Dose, doses: Dose[]) {
 }
 
 export function HomeTodayChecklist() {
+  const { online } = useOffline();
   const date = todayLocal();
   const [doses, setDoses] = useState<Dose[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,14 +51,23 @@ export function HomeTodayChecklist() {
       const response = await fetch(`/api/calendar?date=${encodeURIComponent(date)}`);
       const json = (await response.json()) as CalendarResponse;
       if (!response.ok) {
-        setError(json.error ?? "Could not load today’s doses.");
+        setError(
+          json.error ??
+            (navigator.onLine
+              ? "Could not load today’s doses."
+              : "Offline and no cached doses yet."),
+        );
         setDoses([]);
         return;
       }
       setDoses(json.doses);
       setError(null);
     } catch {
-      setError("Network error loading doses.");
+      setError(
+        navigator.onLine
+          ? "Network error loading doses."
+          : "Offline and no cached doses yet.",
+      );
       setDoses([]);
     } finally {
       setLoading(false);
@@ -67,6 +80,10 @@ export function HomeTodayChecklist() {
 
   async function handleTake(dose: Dose) {
     if (dose.taken) return;
+    if (!navigator.onLine) {
+      setError(RECONNECT_TO_CHANGE);
+      return;
+    }
     const key = `${dose.medicationId}-${dose.prescriptionId}-${dose.doseIndex}`;
     setSavingKey(key);
     setError(null);
@@ -91,6 +108,10 @@ export function HomeTodayChecklist() {
 
   async function handleUntake(dose: Dose) {
     if (!dose.taken) return;
+    if (!navigator.onLine) {
+      setError(RECONNECT_TO_CHANGE);
+      return;
+    }
     const key = `${dose.medicationId}-${dose.prescriptionId}-${dose.doseIndex}`;
     setSavingKey(key);
     setError(null);
@@ -134,6 +155,8 @@ export function HomeTodayChecklist() {
         </Link>
       </div>
 
+      {!online && <div className="mt-3"><ReconnectHint /></div>}
+
       {loading && (
         <p className="mt-3 text-sm text-[var(--text-secondary)]" role="status">
           Loading…
@@ -171,7 +194,7 @@ export function HomeTodayChecklist() {
                   <input
                     type="checkbox"
                     checked={dose.taken}
-                    disabled={!interactive || savingKey === key}
+                    disabled={!online || !interactive || savingKey === key}
                     onChange={() => {
                       if (dose.taken) {
                         void handleUntake(dose);

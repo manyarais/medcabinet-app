@@ -2,6 +2,8 @@
 
 // "Find it" — blinks the physical compartment strip until its switch is pressed.
 
+import { useOffline } from "@/components/OfflineProvider";
+import { RECONNECT_TO_CHANGE } from "@/lib/offline";
 import { useState } from "react";
 
 export function FlashCompartmentButton({
@@ -11,9 +13,15 @@ export function FlashCompartmentButton({
   compartment: number;
   label?: string;
 }) {
+  const { online } = useOffline();
   const [state, setState] = useState<"idle" | "busy" | "ok" | "fail">("idle");
 
   async function flash() {
+    if (!navigator.onLine) {
+      setState("fail");
+      setTimeout(() => setState("idle"), 4000);
+      return;
+    }
     setState("busy");
     try {
       const res = await fetch("/api/cabinet/flash", {
@@ -34,16 +42,22 @@ export function FlashCompartmentButton({
       : state === "ok"
         ? "Lit"
         : state === "fail"
-          ? "Offline"
+          ? online
+            ? "Offline"
+            : "Reconnect"
           : label;
 
   return (
     <button
       type="button"
       onClick={flash}
-      disabled={state === "busy"}
+      disabled={!online || state === "busy"}
       className="inline-flex min-h-8 flex-1 items-center justify-center rounded-full bg-[var(--surface-tint)] px-2.5 text-[11px] font-semibold text-[var(--primary)] transition duration-150 active:scale-95 disabled:opacity-50"
-      title="Blink this compartment's light on the cabinet"
+      title={
+        online
+          ? "Blink this compartment's light on the cabinet"
+          : RECONNECT_TO_CHANGE
+      }
     >
       {text}
     </button>

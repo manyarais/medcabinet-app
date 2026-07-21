@@ -14,12 +14,15 @@ import {
   parseTranscript,
   readPhotosWithOpenAI,
 } from "@/lib/scanner";
+import { getHouseholdByScanToken, scanTokenFromRequest } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 const MAX_PHOTOS = 6;
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024; // after base64 decode
 
 export async function POST(request: NextRequest) {
+  const household = await getHouseholdByScanToken(scanTokenFromRequest(request));
+  if (!household) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -90,13 +93,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const photoUrls = await saveScanPhotos(buffers).catch(() => [] as string[]);
-    const result = await intakeScan(fields, photoUrls);
+    const result = await intakeScan(household.id, fields, photoUrls);
     // Rescan of a known bottle: flash its home compartment right away. New
     // bottles wait for user confirmation before getting a compartment.
     if (result.updatedExisting) {
       void notifyScanDone(null, result.medication.compartment);
     }
-    void logActivity("scan_saved", {
+    void logActivity(household.id, "scan_saved", {
       medicationId: result.medication.id,
       detail: `camera scan: ${result.medication.brandName}`,
     });

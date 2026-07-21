@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 import { CallReminderPanel } from "@/components/CallReminderPanel";
 import { DemoResetButton } from "@/components/DemoResetButton";
 import { DoseReminderToggle } from "@/components/DoseReminderToggle";
+import { ScanTokenCard } from "@/components/ScanTokenCard";
 import { SettingsAccountCard } from "@/components/SettingsAccountCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card } from "@/components/ui/Card";
@@ -25,6 +26,7 @@ export default function SettingsPage() {
           Account
         </h2>
         <SettingsAccountCard />
+        <ScanTokenCard />
       </section>
 
       <section className="mt-8 flex flex-col gap-3">

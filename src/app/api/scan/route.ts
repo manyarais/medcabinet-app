@@ -10,18 +10,21 @@ import { logActivity } from "@/lib/activity";
 import { resetAllLights } from "@/lib/cabinetBoard";
 import { intakeScan } from "@/lib/scanner";
 import { prisma } from "@/lib/db";
+import { getHouseholdByScanToken, scanTokenFromRequest } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 // DELETE /api/scan — the Clear button: wipe EVERYTHING (all medications,
 // schedules, history) and reset every cabinet strip back to red/empty, so the
 // app and the physical cabinet both start from a blank slate.
-export async function DELETE() {
-  await prisma.reminderCallLog.deleteMany();
-  await prisma.usageLog.deleteMany();
-  await prisma.prescription.deleteMany();
-  const result = await prisma.medication.deleteMany();
+export async function DELETE(request: NextRequest) {
+  const household = await getHouseholdByScanToken(scanTokenFromRequest(request));
+  if (!household) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  await prisma.reminderCallLog.deleteMany({ where: { householdId: household.id } });
+  await prisma.usageLog.deleteMany({ where: { householdId: household.id } });
+  await prisma.prescription.deleteMany({ where: { householdId: household.id } });
+  const result = await prisma.medication.deleteMany({ where: { householdId: household.id } });
   void resetAllLights();
-  void logActivity("demo_reset", { detail: `cleared ${result.count} medications` });
+  void logActivity(household.id, "demo_reset", { detail: `cleared ${result.count} medications` });
   return NextResponse.json({ deleted: result.count });
 }
 
@@ -36,6 +39,8 @@ type ScanBody = {
 };
 
 export async function POST(request: NextRequest) {
+  const household = await getHouseholdByScanToken(scanTokenFromRequest(request));
+  if (!household) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   let body: ScanBody;
   try {
     body = (await request.json()) as ScanBody;
@@ -49,7 +54,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await intakeScan({
+    const result = await intakeScan(household.id, {
       name,
       genericName: body.genericName,
       dosageStrength: body.dosageStrength,

@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db";
 import { nextFreeCompartment, notifyScanDone } from "@/lib/scanner";
 import { sizeForCompartment } from "@/lib/compartments";
 import { ensureRxCalendarSchedule } from "@/lib/rxScheduleFromLabel";
+import { getHouseholdByScanToken, scanTokenFromRequest } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 const EDITABLE_FIELDS = [
@@ -31,6 +32,8 @@ type Body = {
 };
 
 export async function POST(request: NextRequest) {
+  const household = await getHouseholdByScanToken(scanTokenFromRequest(request));
+  if (!household) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   let body: Body;
   try {
     body = (await request.json()) as Body;
@@ -44,7 +47,7 @@ export async function POST(request: NextRequest) {
   }
 
   const existing = await prisma.medication.findUnique({ where: { id } });
-  if (!existing) {
+  if (!existing || existing.householdId !== household.id) {
     return NextResponse.json({ error: "Medication not found." }, { status: 404 });
   }
   if (existing.status !== "pending_review") {
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const compartment = body.assign ? await nextFreeCompartment() : null;
+  const compartment = body.assign ? await nextFreeCompartment(household.id) : null;
   const medication = await prisma.medication.update({
     where: { id },
     data: {
@@ -80,9 +83,9 @@ export async function POST(request: NextRequest) {
   if (compartment != null) {
     void notifyScanDone(null, compartment);
     // Rx bottles that land in a bay get a calendar schedule from the label SIG.
-    await ensureRxCalendarSchedule(id);
+    await ensureRxCalendarSchedule(household.id, id);
   }
-  void logActivity("scan_confirmed", {
+  void logActivity(household.id, "scan_confirmed", {
     medicationId: id,
     compartment,
     detail: `${medication.brandName}${compartment != null ? ` → compartment ${compartment}` : " (no compartment)"}`,

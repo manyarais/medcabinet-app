@@ -6,9 +6,12 @@
 import { logActivity } from "@/lib/activity";
 import { saveScanPhotos } from "@/lib/scanPhotos";
 import { intakeScan, notifyScanDone, parseTranscript, runDeviceScan } from "@/lib/scanner";
-import { NextResponse } from "next/server";
+import { getHouseholdByScanToken, scanTokenFromRequest } from "@/lib/household";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const household = await getHouseholdByScanToken(scanTokenFromRequest(request));
+  if (!household) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   let transcript: string;
   let deviceUrl: string;
   let photos: Buffer[];
@@ -38,13 +41,13 @@ export async function POST() {
 
   try {
     const photoUrls = await saveScanPhotos(photos).catch(() => [] as string[]);
-    const result = await intakeScan(fields, photoUrls);
+    const result = await intakeScan(household.id, fields, photoUrls);
     // Rescan of a known bottle: flash its home compartment right away. New
     // bottles wait for user confirmation before getting a compartment.
     if (result.updatedExisting) {
       void notifyScanDone(deviceUrl, result.medication.compartment);
     }
-    void logActivity("scan_saved", {
+    void logActivity(household.id, "scan_saved", {
       medicationId: result.medication.id,
       detail: `hardware scan: ${result.medication.brandName}`,
     });

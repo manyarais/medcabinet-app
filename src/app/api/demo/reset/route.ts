@@ -5,7 +5,7 @@
 import { logActivity } from "@/lib/activity";
 import { resetAllLights } from "@/lib/cabinetBoard";
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextResponse } from "next/server";
 
 /* Sample data kept in case a preloaded demo is ever wanted again — currently
@@ -60,7 +60,7 @@ const DEMO_MEDICATIONS = [
 */
 
 export async function POST() {
-  const household = await getHousehold();
+  const { household } = await requireCapability("manageSettings");
   await prisma.reminderCallLog.deleteMany({ where: { householdId: household.id } });
   await prisma.usageLog.deleteMany({ where: { householdId: household.id } });
   await prisma.prescription.deleteMany({ where: { householdId: household.id } });

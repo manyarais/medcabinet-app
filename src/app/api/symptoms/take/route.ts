@@ -1,7 +1,7 @@
 // POST /api/symptoms/take — create a UsageLog when the user taps "I took this".
 
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 type Body = {
@@ -10,7 +10,7 @@ type Body = {
 };
 
 export async function POST(request: NextRequest) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("checkDose");
 
   let body: Body;
   try {

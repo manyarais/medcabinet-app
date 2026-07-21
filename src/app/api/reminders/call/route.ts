@@ -7,7 +7,7 @@ import {
   placeReminderCall,
 } from "@/lib/twilioCall";
 import { NextRequest, NextResponse } from "next/server";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 
 type Body = {
   test?: boolean;
@@ -16,7 +16,7 @@ type Body = {
 };
 
 export async function GET() {
-  await getHousehold();
+  await requireCapability("manageSettings");
   return NextResponse.json({
     configured: isTwilioConfigured(),
     // Masked hint only — never return numbers/tokens.
@@ -25,7 +25,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("manageSettings");
   let body: Body;
   try {
     body = (await request.json()) as Body;

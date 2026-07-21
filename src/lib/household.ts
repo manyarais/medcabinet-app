@@ -1,29 +1,39 @@
-// Household resolution — Clerk identity ↔ our DB tenant.
+// Household membership — Clerk identity ↔ active household + role.
 
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
-import { DEFAULT_CALL_TEMPLATE } from "@/lib/reminderSettings";
-import type { Household } from "@/generated/prisma";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import type { Household, HouseholdMember } from "@/generated/prisma";
+import { prisma } from "@/lib/db";
+import {
+  hasCapability,
+  isMemberRole,
+  type Capability,
+  type MemberRole,
+} from "@/lib/permissions";
+import { DEFAULT_CALL_TEMPLATE } from "@/lib/reminderSettings";
+
+export const ACTIVE_HOUSEHOLD_COOKIE = "pillio-active-household";
 
 export type HouseholdRow = Household;
 
-/**
- * Resolve the signed-in Clerk user to a Household.
- * Auto-creates on first sign-in (name from Clerk profile).
- * Throws Response 401 when unauthenticated (for API routes).
- */
-export async function getHousehold(): Promise<HouseholdRow> {
-  const { userId } = await auth();
-  if (!userId) {
-    throw NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+export type MembershipContext = {
+  userId: string;
+  membership: HouseholdMember;
+  household: Household;
+  role: MemberRole;
+  status: string;
+};
 
-  const existing = await prisma.household.findUnique({
-    where: { clerkUserId: userId },
-  });
-  if (existing) return existing;
+function unauthorized(): never {
+  throw NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+}
 
+function forbidden(message = "Forbidden."): never {
+  throw NextResponse.json({ error: message }, { status: 403 });
+}
+
+async function createOwnedHousehold(userId: string): Promise<MembershipContext> {
   const user = await currentUser();
   const name =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
@@ -31,26 +41,193 @@ export async function getHousehold(): Promise<HouseholdRow> {
     user?.primaryEmailAddress?.emailAddress ||
     "My household";
 
-  return prisma.household.create({
+  const household = await prisma.household.create({
     data: {
       clerkUserId: userId,
       name,
       reminderSettings: {
         create: { callMessageTemplate: DEFAULT_CALL_TEMPLATE },
       },
+      members: {
+        create: {
+          clerkUserId: userId,
+          role: "owner",
+          status: "active",
+          canSeeSymptomHistory: true,
+        },
+      },
     },
+    include: { members: true },
+  });
+
+  const membership = household.members.find((m) => m.clerkUserId === userId)!;
+  return {
+    userId,
+    membership,
+    household: {
+      id: household.id,
+      name: household.name,
+      clerkUserId: household.clerkUserId,
+      scanToken: household.scanToken,
+      createdAt: household.createdAt,
+    },
+    role: "owner",
+    status: "active",
+  };
+}
+
+async function ensureOwnerMemberForOwnedHousehold(
+  userId: string,
+): Promise<HouseholdMember | null> {
+  const owned = await prisma.household.findUnique({
+    where: { clerkUserId: userId },
+  });
+  if (!owned) return null;
+
+  return prisma.householdMember.upsert({
+    where: {
+      householdId_clerkUserId: {
+        householdId: owned.id,
+        clerkUserId: userId,
+      },
+    },
+    create: {
+      householdId: owned.id,
+      clerkUserId: userId,
+      role: "owner",
+      status: "active",
+      canSeeSymptomHistory: true,
+    },
+    update: {},
   });
 }
 
-/** Same as getHousehold but returns null instead of throwing (server pages). */
-export async function getHouseholdOrNull(): Promise<HouseholdRow | null> {
+/**
+ * Resolve signed-in user to an active household membership.
+ * Supports multiple households; active choice stored in cookie.
+ */
+export async function getMembership(): Promise<MembershipContext> {
+  const { userId } = await auth();
+  if (!userId) unauthorized();
+
+  await ensureOwnerMemberForOwnedHousehold(userId);
+
+  let members = await prisma.householdMember.findMany({
+    where: { clerkUserId: userId },
+    include: { household: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (members.length === 0) {
+    return createOwnedHousehold(userId);
+  }
+
+  const activeMembers = members.filter((m) => m.status === "active");
+  if (activeMembers.length === 0) {
+    forbidden(
+      "Your join request is pending approval. Ask the household owner to approve you.",
+    );
+  }
+
+  const jar = await cookies();
+  const preferredId = jar.get(ACTIVE_HOUSEHOLD_COOKIE)?.value;
+
+  let chosen =
+    (preferredId
+      ? activeMembers.find((m) => m.householdId === preferredId)
+      : undefined) ??
+    activeMembers.find((m) => m.household.clerkUserId === userId) ??
+    activeMembers[0]!;
+
+  if (!isMemberRole(chosen.role)) {
+    forbidden("Invalid membership role.");
+  }
+
+  return {
+    userId,
+    membership: chosen,
+    household: chosen.household,
+    role: chosen.role,
+    status: chosen.status,
+  };
+}
+
+export async function getMembershipOrNull(): Promise<MembershipContext | null> {
   const { userId } = await auth();
   if (!userId) return null;
   try {
-    return await getHousehold();
+    return await getMembership();
   } catch {
     return null;
   }
+}
+
+/** @deprecated Prefer getMembership(); kept for call-site compatibility. */
+export async function getHousehold(): Promise<HouseholdRow> {
+  return (await getMembership()).household;
+}
+
+export async function getHouseholdOrNull(): Promise<HouseholdRow | null> {
+  const ctx = await getMembershipOrNull();
+  return ctx?.household ?? null;
+}
+
+export async function requireCapability(
+  capability: Capability,
+): Promise<MembershipContext> {
+  const ctx = await getMembership();
+  if (
+    !hasCapability(ctx.role, capability, {
+      canSeeSymptomHistory: ctx.membership.canSeeSymptomHistory,
+    })
+  ) {
+    forbidden(`This action requires a higher role (${capability}).`);
+  }
+  return ctx;
+}
+
+export async function listMemberships() {
+  const { userId } = await auth();
+  if (!userId) unauthorized();
+
+  await ensureOwnerMemberForOwnedHousehold(userId);
+
+  const rows = await prisma.householdMember.findMany({
+    where: { clerkUserId: userId, status: "active" },
+    include: { household: { select: { id: true, name: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return rows.map((m) => ({
+    membershipId: m.id,
+    householdId: m.householdId,
+    name: m.household.name,
+    role: m.role,
+    canSeeSymptomHistory: m.canSeeSymptomHistory,
+  }));
+}
+
+export async function setActiveHouseholdId(householdId: string): Promise<void> {
+  const { userId } = await auth();
+  if (!userId) unauthorized();
+
+  const membership = await prisma.householdMember.findFirst({
+    where: {
+      clerkUserId: userId,
+      householdId,
+      status: "active",
+    },
+  });
+  if (!membership) forbidden("You are not an active member of that household.");
+
+  const jar = await cookies();
+  jar.set(ACTIVE_HOUSEHOLD_COOKIE, householdId, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 365,
+  });
 }
 
 export async function getHouseholdByScanToken(
@@ -63,4 +240,8 @@ export async function getHouseholdByScanToken(
 
 export function scanTokenFromRequest(request: Request): string | null {
   return request.headers.get("x-scan-token") ?? request.headers.get("X-Scan-Token");
+}
+
+export function randomInviteCode(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
 }

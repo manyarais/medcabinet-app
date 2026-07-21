@@ -7,7 +7,7 @@ import {
   todayLocal,
 } from "@/lib/dates";
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 type Body = {
@@ -16,7 +16,7 @@ type Body = {
 };
 
 export async function POST(request: NextRequest) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("checkDose");
   let body: Body;
   try {
     body = (await request.json()) as Body;

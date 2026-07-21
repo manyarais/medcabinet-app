@@ -1,11 +1,11 @@
 // GET /api/symptoms/history — recent symptom "I took this" logs (symptom not null).
 
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("seeSymptomHistory");
   const limitParam = Number(request.nextUrl.searchParams.get("limit"));
   const limit =
     Number.isInteger(limitParam) && limitParam > 0

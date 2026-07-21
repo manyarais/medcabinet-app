@@ -7,11 +7,11 @@ import {
   type ReminderSettingsDto,
 } from "@/lib/reminderSettings";
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  const household = await getHousehold();
+  const { household } = await requireCapability("manageSettings");
   const settings = await getReminderSettings(household.id);
   return NextResponse.json({ settings });
 }
@@ -19,7 +19,7 @@ export async function GET() {
 type PatchBody = Partial<ReminderSettingsDto>;
 
 export async function PATCH(request: NextRequest) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("manageSettings");
   let body: PatchBody;
   try {
     body = (await request.json()) as PatchBody;

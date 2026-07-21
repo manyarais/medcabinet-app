@@ -7,11 +7,11 @@ import {
 } from "@/lib/cabinet";
 import { prisma } from "@/lib/db";
 import { ensureRxCalendarSchedule } from "@/lib/rxScheduleFromLabel";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  const household = await getHousehold();
+  const { household } = await requireCapability("read");
   const medications = await prisma.medication.findMany({
     where: { householdId: household.id },
     orderBy: [{ compartment: "asc" }, { brandName: "asc" }],
@@ -32,7 +32,7 @@ type AddBody = {
 };
 
 export async function POST(request: NextRequest) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("mutateMeds");
   let body: AddBody;
 
   try {

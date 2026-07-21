@@ -2,7 +2,7 @@
 // Instant path for home search; does not call openFDA.
 
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export type CabinetSearchHit = {
@@ -16,7 +16,7 @@ export type CabinetSearchHit = {
 };
 
 export async function GET(request: NextRequest) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("read");
   const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   if (!query) {

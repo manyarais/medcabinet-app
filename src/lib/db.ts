@@ -10,7 +10,7 @@ const globalForPrisma = globalThis as unknown as {
   prismaSchemaVersion?: number;
 };
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 function createClient() {
   return new PrismaClient();

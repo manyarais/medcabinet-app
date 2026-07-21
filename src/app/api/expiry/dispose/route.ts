@@ -4,11 +4,11 @@
 
 import { logActivity } from "@/lib/activity";
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("mutateMeds");
   let id: number;
   try {
     const body = (await request.json()) as { id?: number };

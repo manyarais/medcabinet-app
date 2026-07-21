@@ -8,7 +8,7 @@ import {
 } from "@/lib/dates";
 import { isActiveScheduleInRange } from "@/lib/calendarSchedule";
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
@@ -26,7 +26,7 @@ export type MonthDaySummary = {
 };
 
 export async function GET(request: NextRequest) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("read");
   const monthParam =
     request.nextUrl.searchParams.get("month")?.trim() ??
     todayLocal().slice(0, 7);

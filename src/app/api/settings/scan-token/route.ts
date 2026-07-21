@@ -2,7 +2,7 @@
 // POST /api/settings/scan-token — regenerate (invalidates the previous token).
 
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 
@@ -12,12 +12,12 @@ function newScanToken(): string {
 }
 
 export async function GET() {
-  const household = await getHousehold();
+  const { household } = await requireCapability("manageSettings");
   return NextResponse.json({ scanToken: household.scanToken });
 }
 
 export async function POST() {
-  const household = await getHousehold();
+  const { household } = await requireCapability("manageSettings");
   const updated = await prisma.household.update({
     where: { id: household.id },
     data: { scanToken: newScanToken() },

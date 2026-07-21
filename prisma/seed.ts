@@ -193,6 +193,22 @@ async function main() {
     },
     update: {},
   });
+  await prisma.householdMember.upsert({
+    where: {
+      householdId_clerkUserId: {
+        householdId: household.id,
+        clerkUserId: "SEED_USER",
+      },
+    },
+    create: {
+      householdId: household.id,
+      clerkUserId: "SEED_USER",
+      role: "owner",
+      status: "active",
+      canSeeSymptomHistory: true,
+    },
+    update: {},
+  });
   await prisma.usageLog.deleteMany({ where: { householdId: household.id } });
   await prisma.prescription.deleteMany({ where: { householdId: household.id } });
   await prisma.medication.deleteMany({ where: { householdId: household.id } });

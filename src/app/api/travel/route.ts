@@ -5,11 +5,11 @@
 import { logActivity } from "@/lib/activity";
 import { flashCompartment } from "@/lib/cabinetBoard";
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("toggleOut");
   let action: string;
   let ids: number[];
   try {

@@ -9,7 +9,7 @@ import {
 import { isActiveScheduleOnDate } from "@/lib/calendarSchedule";
 import { parseDoseTimes } from "@/lib/doseTimes";
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export type CalendarDose = {
@@ -28,7 +28,7 @@ export type CalendarDose = {
 };
 
 export async function GET(request: NextRequest) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("read");
   const dateParam = request.nextUrl.searchParams.get("date")?.trim() ?? todayLocal();
 
   if (!isValidDateString(dateParam)) {

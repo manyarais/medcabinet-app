@@ -2,12 +2,13 @@
 // POST /api/symptoms/take — log that the user took a medication for a symptom.
 
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
+import { hasCapability } from "@/lib/permissions";
 import { matchOtcCabinetMeds } from "@/lib/symptomMatch";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const household = await getHousehold();
+  const { household, membership, role } = await requireCapability("read");
   const symptom = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   if (!symptom) {
@@ -24,14 +25,19 @@ export async function GET(request: NextRequest) {
   // PRODUCT SAFETY: OTC-only matches (see matchOtcCabinetMeds).
   const matches = matchOtcCabinetMeds(cabinetMeds, symptom);
 
-  const pastUsage = await prisma.usageLog.findMany({
-    where: {
-      householdId: household.id,
-      symptom: { contains: symptom },
-    },
-    include: { medication: true },
-    orderBy: { takenAt: "desc" },
+  const canSeeSymptomHistory = hasCapability(role, "seeSymptomHistory", {
+    canSeeSymptomHistory: membership.canSeeSymptomHistory,
   });
+  const pastUsage = canSeeSymptomHistory
+    ? await prisma.usageLog.findMany({
+        where: {
+          householdId: household.id,
+          symptom: { contains: symptom },
+        },
+        include: { medication: true },
+        orderBy: { takenAt: "desc" },
+      })
+    : [];
 
   // Case-insensitive filter in JS (SQLite CONTAINS is case-sensitive by default).
   const symptomLower = symptom.toLowerCase();
@@ -50,6 +56,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     symptom,
     matches,
-    usedBefore,
+    ...(canSeeSymptomHistory ? { usedBefore } : {}),
   });
 }

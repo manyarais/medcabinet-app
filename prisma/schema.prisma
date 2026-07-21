@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// One household per Clerk account. Owns all cabinet / calendar / reminder data.
+/// One household. clerkUserId is the creator; access is via HouseholdMember.
 model Household {
   id           String   @id @default(cuid())
   name         String
@@ -24,6 +24,37 @@ model Household {
   reminderSettings ReminderSettings?
   reminderCallLogs ReminderCallLog[]
   activityEvents   ActivityEvent[]
+  members          HouseholdMember[]
+  invites          HouseholdInvite[]
+}
+
+/// Membership in a household (owner / caregiver / viewer).
+model HouseholdMember {
+  id                    String    @id @default(cuid())
+  householdId           String
+  household             Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  clerkUserId           String
+  role                  String // "owner" | "caregiver" | "viewer"
+  status                String // "pending" | "active"
+  canSeeSymptomHistory  Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+
+  @@unique([householdId, clerkUserId])
+  @@index([clerkUserId])
+  @@index([householdId])
+}
+
+/// Short-lived invite codes (6-digit, typically 48h).
+model HouseholdInvite {
+  id                   String    @id @default(cuid())
+  householdId          String
+  household            Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  code                 String    @unique
+  createdByClerkUserId String
+  expiresAt            DateTime
+  createdAt            DateTime  @default(now())
+
+  @@index([householdId])
 }
 
 model Medication {

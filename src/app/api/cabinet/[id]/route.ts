@@ -7,7 +7,7 @@ import {
   validateAssignableCompartment,
 } from "@/lib/cabinet";
 import { prisma } from "@/lib/db";
-import { getHousehold } from "@/lib/household";
+import { requireCapability } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -32,7 +32,17 @@ type PatchBody = {
 };
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const household = await getHousehold();
+  let body: PatchBody;
+  try {
+    body = (await request.json()) as PatchBody;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+  const capability =
+    Object.keys(body).length === 1 && body.outOfCabinet !== undefined
+      ? "toggleOut"
+      : "mutateMeds";
+  const { household } = await requireCapability(capability);
   const { id: idParam } = await params;
   const id = Number(idParam);
   if (!Number.isInteger(id) || id < 1) {
@@ -42,13 +52,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const existing = await prisma.medication.findUnique({ where: { id } });
   if (!existing || existing.householdId !== household.id) {
     return NextResponse.json({ error: "Medication not found." }, { status: 404 });
-  }
-
-  let body: PatchBody;
-  try {
-    body = (await request.json()) as PatchBody;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
   const data: {
@@ -161,7 +164,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const household = await getHousehold();
+  const { household } = await requireCapability("mutateMeds");
   const { id: idParam } = await params;
   const id = Number(idParam);
   if (!Number.isInteger(id) || id < 1) {

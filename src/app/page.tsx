@@ -2,6 +2,7 @@
 
 import { DrugSearch } from "@/components/DrugSearch";
 import { HomeFeatureCard } from "@/components/HomeFeatureCard";
+import { HomeOfflineNotice } from "@/components/HomeOfflineNotice";
 import { HomeTodayChecklist } from "@/components/HomeTodayChecklist";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { getHomeDashboardData } from "@/lib/homeDashboard";
@@ -28,6 +29,8 @@ export default async function HomePage() {
           title={greeting}
           subtitle="Search what you have — or scan a new bottle in."
         />
+
+        <HomeOfflineNotice />
 
         {alertCount > 0 && (
           <Link

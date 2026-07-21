@@ -1,9 +1,10 @@
 "use client";
 
-// Symptom lookup UI (Phase 3): match OTC cabinet labels; log "I took this".
+// Symptom lookup: optional NL parse (extract-only) → deterministic OTC label match.
 
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import { VoiceMicButton } from "@/components/VoiceMicButton";
+import { looksLikeNaturalLanguage } from "@/lib/symptomParse";
 import { FormEvent, useEffect, useState } from "react";
 
 type Match = {
@@ -37,11 +38,18 @@ type HistoryResponse = {
   error?: string;
 };
 
+type SymptomGroup = {
+  symptom: string;
+  matches: Match[];
+  usedBefore: UsedBefore[];
+};
+
 export function SymptomSearch() {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<SearchResponse | null>(null);
+  const [activeSymptoms, setActiveSymptoms] = useState<string[]>([]);
+  const [groups, setGroups] = useState<SymptomGroup[] | null>(null);
   const [takeMessage, setTakeMessage] = useState<string | null>(null);
   const [takingId, setTakingId] = useState<number | null>(null);
   const [recent, setRecent] = useState<UsedBefore[]>([]);
@@ -62,38 +70,109 @@ export function SymptomSearch() {
     return () => window.clearTimeout(boot);
   }, []);
 
-  async function runSearch(symptom: string, options?: { preserveTakeMessage?: boolean }) {
+  async function fetchMatches(symptom: string): Promise<SearchResponse | null> {
+    const response = await fetch(
+      `/api/symptoms?q=${encodeURIComponent(symptom)}`,
+    );
+    const data = (await response.json()) as SearchResponse;
+    if (!response.ok) {
+      throw new Error(data.error ?? "Search failed.");
+    }
+    return data;
+  }
+
+  /** Try NL extract; on any failure return null so caller uses raw text. */
+  async function tryParseSymptoms(text: string): Promise<string[] | null> {
+    try {
+      const response = await fetch("/api/symptoms/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!response.ok) return null;
+      const data = (await response.json()) as { symptoms?: string[] };
+      if (!Array.isArray(data.symptoms)) return null;
+      return data.symptoms
+        .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+        .map((s) => s.trim().toLowerCase());
+    } catch {
+      return null;
+    }
+  }
+
+  async function matchSymptoms(
+    symptoms: string[],
+    options?: { preserveTakeMessage?: boolean },
+  ) {
+    const unique = [...new Set(symptoms.map((s) => s.trim()).filter(Boolean))];
+    setActiveSymptoms(unique);
     setIsLoading(true);
     setError(null);
     if (!options?.preserveTakeMessage) {
       setTakeMessage(null);
     }
-    setResult(null);
+    setGroups(null);
+
+    if (unique.length === 0) {
+      setGroups([]);
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const response = await fetch(`/api/symptoms?q=${encodeURIComponent(symptom)}`);
-      const data = (await response.json()) as SearchResponse;
-      if (!response.ok) {
-        setError(data.error ?? "Search failed.");
-        return;
-      }
-      setResult(data);
-    } catch {
-      setError("Could not reach the symptom API.");
+      const results = await Promise.all(unique.map((s) => fetchMatches(s)));
+      setGroups(
+        results.map((data, i) => ({
+          symptom: unique[i]!,
+          matches: data?.matches ?? [],
+          usedBefore: data?.usedBefore ?? [],
+        })),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reach the symptom API.");
+      setGroups([]);
     } finally {
       setIsLoading(false);
     }
   }
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    const trimmed = query.trim();
+  async function runFromInput(raw: string, options?: { preserveTakeMessage?: boolean }) {
+    const trimmed = raw.trim();
     if (!trimmed) return;
-    await runSearch(trimmed);
+
+    // Single-word → direct label match (no AI).
+    if (!looksLikeNaturalLanguage(trimmed)) {
+      await matchSymptoms([trimmed.toLowerCase()], options);
+      return;
+    }
+
+    // Multi-word: extract-only parse, then deterministic match per term.
+    // PRODUCT SAFETY: AI never picks meds — only symptom strings for label search.
+    const parsed = await tryParseSymptoms(trimmed);
+    if (parsed == null) {
+      // Key missing / timeout / failure — silent fallback to raw input.
+      await matchSymptoms([trimmed], options);
+      return;
+    }
+    if (parsed.length === 0) {
+      // Nothing extractable (e.g. only a drug question) — fall back to raw.
+      await matchSymptoms([trimmed], options);
+      return;
+    }
+    await matchSymptoms(parsed, options);
   }
 
-  async function handleTake(match: Match) {
-    if (!result) return;
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    await runFromInput(query);
+  }
+
+  async function removeSymptom(term: string) {
+    const next = activeSymptoms.filter((s) => s !== term);
+    await matchSymptoms(next);
+  }
+
+  async function handleTake(match: Match, symptom: string) {
     setTakingId(match.medicationId);
     setTakeMessage(null);
     try {
@@ -102,7 +181,7 @@ export function SymptomSearch() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           medicationId: match.medicationId,
-          symptom: result.symptom,
+          symptom,
         }),
       });
       const data = (await response.json()) as { error?: string };
@@ -110,15 +189,17 @@ export function SymptomSearch() {
         setTakeMessage(data.error ?? "Could not log this dose.");
         return;
       }
-      await runSearch(result.symptom, { preserveTakeMessage: true });
+      await matchSymptoms(activeSymptoms, { preserveTakeMessage: true });
       await loadRecent();
-      setTakeMessage(`Logged taking ${match.brandName} for “${result.symptom}”.`);
+      setTakeMessage(`Logged taking ${match.brandName} for “${symptom}”.`);
     } catch {
       setTakeMessage("Network error while logging.");
     } finally {
       setTakingId(null);
     }
   }
+
+  const hasResults = groups != null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -137,7 +218,7 @@ export function SymptomSearch() {
           onTranscript={setQuery}
           onFinal={(text) => {
             setQuery(text);
-            void runSearch(text);
+            void runFromInput(text);
           }}
           disabled={isLoading}
         />
@@ -149,6 +230,28 @@ export function SymptomSearch() {
           {isLoading ? "…" : "Go"}
         </button>
       </form>
+
+      {activeSymptoms.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-[var(--text-secondary)]">
+            Searching for:
+          </span>
+          {activeSymptoms.map((term) => (
+            <button
+              key={term}
+              type="button"
+              onClick={() => void removeSymptom(term)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-tint)] px-3 py-1.5 text-sm font-medium text-[var(--otc-text)] transition duration-150 active:scale-95"
+              aria-label={`Remove ${term}`}
+            >
+              {term}
+              <span aria-hidden className="text-[var(--text-secondary)]">
+                ✕
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && (
         <p
@@ -163,70 +266,80 @@ export function SymptomSearch() {
         <p className="text-sm font-medium text-[var(--primary)]">{takeMessage}</p>
       )}
 
-      {result && (
-        <>
-          <section className="flex flex-col gap-3">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              In your cabinet
-            </h2>
+      {hasResults && (
+        <div className="flex flex-col gap-8">
+          {groups!.length === 0 ? (
+            <p className="rounded-2xl bg-[var(--accent-cream)] px-4 py-8 text-center text-sm text-[var(--text-secondary)]">
+              Nothing to search — add a symptom.
+            </p>
+          ) : (
+            groups!.map((group) => (
+              <section key={group.symptom} className="flex flex-col gap-3">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                  In your cabinet · {group.symptom}
+                </h2>
 
-            {result.matches.length === 0 ? (
-              <p className="rounded-2xl bg-[var(--accent-cream)] px-4 py-8 text-center text-sm text-[var(--text-secondary)]">
-                Nothing in your cabinet matches that on the label.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {result.matches.map((match) => (
-                  <li
-                    key={match.medicationId}
-                    className="rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-[var(--shadow-soft)]"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-lg font-semibold text-[var(--text-primary)]">
-                            {match.brandName}
+                {group.matches.length === 0 ? (
+                  <p className="rounded-2xl bg-[var(--accent-cream)] px-4 py-8 text-center text-sm text-[var(--text-secondary)]">
+                    Nothing in your cabinet matches “{group.symptom}” on the label.
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-3">
+                    {group.matches.map((match) => (
+                      <li
+                        key={`${group.symptom}-${match.medicationId}`}
+                        className="rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-[var(--shadow-soft)]"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-lg font-semibold text-[var(--text-primary)]">
+                                {match.brandName}
+                              </p>
+                              {match.outOfCabinet && (
+                                <span className="rounded-full bg-[var(--warning-bg)] px-2 py-0.5 text-[10px] font-bold uppercase text-[var(--warning-text)]">
+                                  Out
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1.5">
+                              <ProductTypeBadge productType={match.productType} />
+                            </div>
+                          </div>
+                          <p className="text-3xl font-bold tabular-nums text-[var(--primary)]">
+                            {match.compartment != null ? match.compartment : "—"}
                           </p>
-                          {match.outOfCabinet && (
-                            <span className="rounded-full bg-[var(--warning-bg)] px-2 py-0.5 text-[10px] font-bold uppercase text-[var(--warning-text)]">
-                              Out
-                            </span>
-                          )}
                         </div>
-                        <div className="mt-1.5">
-                          <ProductTypeBadge productType={match.productType} />
-                        </div>
-                      </div>
-                      <p className="text-3xl font-bold tabular-nums text-[var(--primary)]">
-                        {match.compartment != null ? match.compartment : "—"}
-                      </p>
-                    </div>
-                    <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
-                      {match.matchExcerpt}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => handleTake(match)}
-                      disabled={takingId === match.medicationId}
-                      className="mt-4 min-h-11 rounded-2xl btn-primary-fill px-4 text-sm font-semibold transition duration-150 ease-out disabled:opacity-50"
-                    >
-                      {takingId === match.medicationId ? "Logging…" : "I took this"}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                        <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
+                          {match.matchExcerpt}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleTake(match, group.symptom)}
+                          disabled={takingId === match.medicationId}
+                          className="mt-4 min-h-11 rounded-2xl btn-primary-fill px-4 text-sm font-semibold transition duration-150 ease-out disabled:opacity-50"
+                        >
+                          {takingId === match.medicationId
+                            ? "Logging…"
+                            : "I took this"}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
-          {result.usedBefore.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                Past takes for “{result.symptom}”
-              </h2>
-              <UsageList entries={result.usedBefore} />
-            </section>
+                {group.usedBefore.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-xs font-semibold text-[var(--text-secondary)]">
+                      Past takes for “{group.symptom}”
+                    </h3>
+                    <UsageList entries={group.usedBefore} />
+                  </div>
+                )}
+              </section>
+            ))
           )}
-        </>
+        </div>
       )}
 
       <section className="flex flex-col gap-3 border-t border-[var(--border)] pt-6">

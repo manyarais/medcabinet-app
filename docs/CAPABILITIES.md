@@ -40,6 +40,7 @@ Fill **Owner**, **Her note**, and adjust Showcase role as the team decides.
 | Jump search in cabinet | `CabinetJumpSearch` | Works | Support | | |
 | Out-of-cabinet marking | `outOfCabinet` | Works | Support / Optional | | |
 | Symptom → OTC cabinet match | `/symptoms`, `/api/symptoms` | Works → aim Demo-ready | **Hero** | | |
+| NL symptom extract (Gemini) | `POST /api/symptoms/parse`, `GEMINI_API_KEY` | Works (gated) | Support | | Extract-only; never picks meds; falls back to raw text |
 | Take this + usage history | take + history APIs | Works | Hero | | |
 | Seeded demo cabinet | `prisma/seed.ts` | Works | Core | | |
 | Prescription schedules | prescriptions + forms | Stretch | Optional | | |

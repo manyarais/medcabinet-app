@@ -4,7 +4,6 @@
 
 import { InstacartReorderButton } from "@/components/InstacartReorderButton";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
-import { VoiceMicButton } from "@/components/VoiceMicButton";
 import {
   purposeOneLine,
   refineCatalogResults,
@@ -159,10 +158,6 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
             }
             autoComplete="off"
             enterKeyHint="search"
-          />
-          <VoiceMicButton
-            onTranscript={setQuery}
-            disabled={cabinetLoading || fdaLoading}
           />
           <button
             type="submit"

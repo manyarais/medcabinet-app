@@ -23,6 +23,9 @@ const KNOWN_SYMPTOM_PHRASES = [
   "runny nose",
   "sore throat",
   "stomach pain",
+  "stomach ache",
+  "tummy ache",
+  "belly ache",
   "muscle pain",
   "joint pain",
   "chest congestion",
@@ -44,6 +47,61 @@ const KNOWN_SYMPTOM_PHRASES = [
   "itch",
   "rash",
 ] as const;
+
+/** Map colloquial compounds → label-friendly search terms (include region + sensation). */
+const COLLOQUIAL_EXPANSIONS: Array<{ pattern: RegExp; terms: string[] }> = [
+  {
+    pattern: /\b(stomach|tummy|belly)\s+aches?\b/i,
+    terms: ["stomach pain", "stomach", "ache"],
+  },
+  {
+    pattern: /\b(stomach|tummy|belly)\s+pains?\b/i,
+    terms: ["stomach pain", "stomach", "pain"],
+  },
+  { pattern: /\bhead\s+aches?\b/i, terms: ["headache"] },
+  {
+    pattern: /\b(back|tooth|ear|neck|muscle|joint)\s+(ache|pain)s?\b/i,
+    terms: [], // filled dynamically from the match
+  },
+];
+
+const STOP_TOKENS = new Set([
+  "i",
+  "i'm",
+  "im",
+  "am",
+  "a",
+  "an",
+  "the",
+  "and",
+  "or",
+  "my",
+  "me",
+  "having",
+  "have",
+  "has",
+  "had",
+  "got",
+  "getting",
+  "with",
+  "for",
+  "to",
+  "of",
+  "on",
+  "in",
+  "is",
+  "are",
+  "was",
+  "been",
+  "very",
+  "really",
+  "so",
+  "like",
+  "feel",
+  "feeling",
+  "feels",
+]);
+
 
 export type ParsedSymptoms = {
   symptoms: string[];
@@ -85,17 +143,76 @@ export function filterExtractedSymptoms(symptoms: string[]): string[] {
 /**
  * Offline fallback when Gemini is unset/fails: pull known label-friendly
  * symptom phrases out of the free text (still not medication advice).
+ * Keeps body-region words (e.g. stomach) together with ache/pain — not ache alone.
  */
+const SENSATION_ONLY = new Set(["ache", "pain", "itch", "rash"]);
+
 export function extractSymptomsHeuristically(text: string): string[] {
-  const lower = text.toLowerCase();
+  const lower = text.toLowerCase().replace(/\s+/g, " ").trim();
   const found: string[] = [];
+
+  const push = (term: string) => {
+    const t = term.trim().toLowerCase();
+    if (!t || found.includes(t)) return;
+    found.push(t);
+  };
+
+  // Colloquial "stomach ache" → stomach pain + stomach + ache (not only "ache").
+  for (const { pattern, terms } of COLLOQUIAL_EXPANSIONS) {
+    const match = lower.match(pattern);
+    if (!match) continue;
+    if (terms.length > 0) {
+      for (const term of terms) push(term);
+      continue;
+    }
+    const region = (match[1] ?? "").toLowerCase();
+    const sensation = (match[2] ?? "").toLowerCase();
+    if (region && sensation) {
+      push(`${region} ${sensation}`);
+      push(region);
+      push(sensation);
+    }
+  }
+
   for (const phrase of KNOWN_SYMPTOM_PHRASES) {
     if (!lower.includes(phrase)) continue;
-    const normalized = phrase === "allergies" ? "allergy" : phrase;
-    // Phrases are longest-first; skip short tokens already covered (ache ⊂ headache).
-    if (found.some((f) => f.includes(normalized))) continue;
-    found.push(normalized);
+    const normalized =
+      phrase === "allergies"
+        ? "allergy"
+        : phrase === "stomach ache" ||
+            phrase === "tummy ache" ||
+            phrase === "belly ache"
+          ? "stomach pain"
+          : phrase;
+    // Skip short sensation words already covered (ache ⊂ headache), but keep
+    // region words like "stomach" even when "stomach pain" is present.
+    if (
+      SENSATION_ONLY.has(normalized) &&
+      found.some((f) => f.includes(normalized) && f.length > normalized.length)
+    ) {
+      continue;
+    }
+    if (found.includes(normalized)) continue;
+    push(normalized);
   }
+
+  // Multi-word inputs: also keep meaningful tokens (stomach from "stomach ache").
+  if (/\s/.test(lower)) {
+    for (const token of lower.split(/\s+/)) {
+      const clean = token.replace(/[^a-z\-]/g, "");
+      if (clean.length < 3 || STOP_TOKENS.has(clean)) continue;
+      if (looksLikeMedicationOrAdvice(clean)) continue;
+      if (found.includes(clean)) continue;
+      if (
+        SENSATION_ONLY.has(clean) &&
+        found.some((f) => f.includes(clean) && f.length > clean.length)
+      ) {
+        continue;
+      }
+      push(clean);
+    }
+  }
+
   return filterExtractedSymptoms(found);
 }
 
@@ -182,17 +299,17 @@ export function looksLikeNaturalLanguage(text: string): boolean {
 
 /**
  * Resolve which symptom strings to match against cabinet labels.
- * Prefer Gemini extracts; else heuristic phrases; never use a full sentence
- * as the needle (labels contain "headache", not "i am having a headache").
+ * Prefer Gemini extracts merged with local expansions so "stomach ache"
+ * does not collapse to only "ache".
  */
 export function resolveSymptomsForMatch(
   rawInput: string,
   parsedFromAi: string[] | null,
 ): string[] {
-  if (parsedFromAi && parsedFromAi.length > 0) {
-    return filterExtractedSymptoms(parsedFromAi);
-  }
   const heuristic = extractSymptomsHeuristically(rawInput);
+  if (parsedFromAi && parsedFromAi.length > 0) {
+    return filterExtractedSymptoms([...parsedFromAi, ...heuristic]);
+  }
   if (heuristic.length > 0) return heuristic;
   const trimmed = rawInput.trim().toLowerCase();
   return trimmed ? [trimmed] : [];

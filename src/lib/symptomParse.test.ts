@@ -35,6 +35,13 @@ describe("symptomParse helpers", () => {
     ]);
   });
 
+  it("keeps stomach and ache for stomach ache (not ache alone)", () => {
+    const terms = extractSymptomsHeuristically("stomach ache");
+    expect(terms).toContain("stomach pain");
+    expect(terms).toContain("stomach");
+    expect(terms).toContain("ache");
+  });
+
   it("resolveSymptomsForMatch prefers AI then heuristic over raw sentence", () => {
     expect(resolveSymptomsForMatch("i am having a headache", null)).toEqual([
       "headache",
@@ -42,5 +49,12 @@ describe("symptomParse helpers", () => {
     expect(
       resolveSymptomsForMatch("i am having a headache", ["headache"]),
     ).toEqual(["headache"]);
+  });
+
+  it("merges AI ache-only with stomach from the raw phrase", () => {
+    const terms = resolveSymptomsForMatch("stomach ache", ["ache"]);
+    expect(terms).toContain("stomach");
+    expect(terms).toContain("ache");
+    expect(terms).toContain("stomach pain");
   });
 });

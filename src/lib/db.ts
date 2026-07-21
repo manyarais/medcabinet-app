@@ -1,16 +1,16 @@
 // Singleton Prisma client for the app.
 // Next.js hot-reload can create many clients in dev without this guard,
 // which exhausts database connections.
-// bump: recreate client after schema changes (ReminderSettings / CallLog)
+// bump: recreate client after schema changes (Household multi-tenancy)
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/generated/prisma";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
   prismaSchemaVersion?: number;
 };
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 function createClient() {
   return new PrismaClient();

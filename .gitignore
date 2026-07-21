@@ -51,3 +51,6 @@ next-env.d.ts
 
 # scan label photos (user data)
 /public/scan-photos/
+
+# clerk configuration (can include secrets)
+/.clerk/

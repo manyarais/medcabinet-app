@@ -1,7 +1,8 @@
-// Prisma schema for MedCabinet.
+// Prisma schema for MedCabinet / Pillio.
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -9,8 +10,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// One household per Clerk account. Owns all cabinet / calendar / reminder data.
+model Household {
+  id           String   @id @default(cuid())
+  name         String
+  clerkUserId  String   @unique
+  scanToken    String   @unique @default(cuid())
+  createdAt    DateTime @default(now())
+
+  medications      Medication[]
+  usageLogs        UsageLog[]
+  prescriptions    Prescription[]
+  reminderSettings ReminderSettings?
+  reminderCallLogs ReminderCallLog[]
+  activityEvents   ActivityEvent[]
+}
+
 model Medication {
   id              Int        @id @default(autoincrement())
+  householdId     String
+  household       Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
   brandName       String
   genericName     String?
   productType     String // "OTC" | "PRESCRIPTION"
@@ -36,29 +55,41 @@ model Medication {
   disposedAt      DateTime? // when the user marked it disposed
   usageLogs       UsageLog[]
   prescriptions   Prescription[]
+
+  @@index([householdId])
 }
 
 /// Append-only log of things that happened (scans, confirmations, disposals,
 /// out/return, light flashes) — powers the Activity page and alerts.
 model ActivityEvent {
-  id           Int      @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
+  householdId  String
+  household    Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   type         String // scan_saved | scan_confirmed | scan_discarded | disposed | out | returned | flash | travel_pack | travel_return | demo_reset
   medicationId Int?
   compartment  Int?
   detail       String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
+
+  @@index([householdId])
 }
 
 model UsageLog {
-  id           Int        @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
+  householdId  String
+  household    Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
   medicationId Int?
   medication   Medication? @relation(fields: [medicationId], references: [id], onDelete: SetNull)
   symptom      String? // what the user searched when they took it; null for scheduled Rx doses
-  takenAt      DateTime   @default(now())
+  takenAt      DateTime    @default(now())
+
+  @@index([householdId])
 }
 
 model Prescription {
   id           Int        @id @default(autoincrement())
+  householdId  String
+  household    Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
   medicationId Int
   medication   Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
   dosesPerDay  Int
@@ -67,30 +98,37 @@ model Prescription {
   doseTimes    String     @default("[]")
   startDate    String // YYYY-MM-DD (required — prescriptions are finite)
   endDate      String // YYYY-MM-DD (required — prescriptions are finite)
+
+  @@index([householdId])
 }
 
-/// Singleton row (id = 1) for phone-call reminder preferences.
+/// One row per household for phone-call reminder preferences.
 model ReminderSettings {
-  id                      Int     @id @default(1)
+  id                      Int       @id @default(autoincrement())
+  householdId             String    @unique
+  household               Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   /// When true, /api/reminders/dispatch may place Twilio calls (app can be closed).
-  serverAutoCall          Boolean @default(false)
+  serverAutoCall          Boolean   @default(false)
   /// Spoken script; use {brandName} and {scheduledTime} placeholders.
-  callMessageTemplate     String  @default("Hello from Pillio. This is a reminder that {brandName} is due at {scheduledTime}. Please check your Pillio calendar when you can. This is a reminder only, not medical advice. Goodbye.")
-  quietHoursEnabled       Boolean @default(false)
-  quietStart              String  @default("22:00") // HH:MM local
-  quietEnd                String  @default("07:00") // HH:MM local (may be next morning)
+  callMessageTemplate     String    @default("Hello from Pillio. This is a reminder that {brandName} is due at {scheduledTime}. Please check your Pillio calendar when you can. This is a reminder only, not medical advice. Goodbye.")
+  quietHoursEnabled       Boolean   @default(false)
+  quietStart              String    @default("22:00") // HH:MM local
+  quietEnd                String    @default("07:00") // HH:MM local (may be next morning)
   /// If true, overdue doses still trigger calls during quiet hours.
-  callOverdueDuringQuiet  Boolean @default(true)
+  callOverdueDuringQuiet  Boolean   @default(true)
 }
 
-/// Dedupes outbound reminder calls per dose slot per day.
+/// Dedupes outbound reminder calls per dose slot per day per household.
 model ReminderCallLog {
-  id             Int      @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
+  householdId    String
+  household      Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   date           String // YYYY-MM-DD
   medicationId   Int
   absoluteIndex  Int
   callSid        String?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
 
-  @@unique([date, medicationId, absoluteIndex])
+  @@unique([householdId, date, medicationId, absoluteIndex])
+  @@index([householdId])
 }

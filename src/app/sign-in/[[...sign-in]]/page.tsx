@@ -26,6 +26,8 @@ export default function SignInPage() {
         path="/sign-in"
         signUpUrl="/sign-up"
         fallbackRedirectUrl="/"
+        transferable={false}
+        withSignUp={false}
       />
     </main>
   );

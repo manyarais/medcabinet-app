@@ -227,7 +227,9 @@ export async function listMemberships() {
 
   const rows = await prisma.householdMember.findMany({
     where: { clerkUserId: userId, status: "active" },
-    include: { household: { select: { id: true, name: true } } },
+    include: {
+      household: { select: { id: true, name: true, clerkUserId: true } },
+    },
     orderBy: { createdAt: "asc" },
   });
 
@@ -237,6 +239,8 @@ export async function listMemberships() {
     name: m.household.name,
     role: m.role,
     canSeeSymptomHistory: m.canSeeSymptomHistory,
+    /** True when this user created / owns the household record. */
+    isOwned: m.household.clerkUserId === userId,
   }));
 }
 

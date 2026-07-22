@@ -1,13 +1,18 @@
 // GET /api/households — list active memberships
 // POST /api/households — set active household { householdId }
+// PATCH /api/households — rename active household { name }
 
 import {
   ACTIVE_HOUSEHOLD_COOKIE,
   listMemberships,
+  requireCapability,
   setActiveHouseholdId,
 } from "@/lib/household";
+import { prisma } from "@/lib/db";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+
+const MAX_NAME_LEN = 60;
 
 export async function GET() {
   try {
@@ -39,5 +44,32 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof NextResponse) return error;
     return NextResponse.json({ error: "Could not switch household." }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { household } = await requireCapability("manageSettings");
+    const body = (await request.json()) as { name?: string };
+    const name = body.name?.trim() ?? "";
+    if (!name) {
+      return NextResponse.json({ error: "Name is required." }, { status: 400 });
+    }
+    if (name.length > MAX_NAME_LEN) {
+      return NextResponse.json(
+        { error: `Name must be ${MAX_NAME_LEN} characters or fewer.` },
+        { status: 400 },
+      );
+    }
+
+    const updated = await prisma.household.update({
+      where: { id: household.id },
+      data: { name },
+      select: { id: true, name: true },
+    });
+    return NextResponse.json({ household: updated });
+  } catch (error) {
+    if (error instanceof NextResponse) return error;
+    return NextResponse.json({ error: "Could not rename household." }, { status: 500 });
   }
 }

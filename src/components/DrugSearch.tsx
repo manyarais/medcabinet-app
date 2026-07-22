@@ -1,6 +1,6 @@
 "use client";
 
-// Home-page search: cabinet matches first (instant), then optional FDA catalog behind "Show more".
+// Home search: cabinet first. FDA catalog is opt-in, short, and name-only (pill variant).
 
 import { InstacartReorderButton } from "@/components/InstacartReorderButton";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
@@ -41,7 +41,11 @@ type FdaSearchResponse = {
   error?: string;
 };
 
+const CATALOG_LIMIT_PILL = 5;
+const CATALOG_LIMIT_DEFAULT = 25;
+
 export function DrugSearch({ variant = "default" }: { variant?: "default" | "pill" }) {
+  const slim = variant === "pill";
   const { online } = useOffline();
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -53,6 +57,78 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
   const [error, setError] = useState<string | null>(null);
   const [fdaNeedsConnection, setFdaNeedsConnection] = useState(false);
   const [showCatalog, setShowCatalog] = useState(false);
+
+  async function searchCabinet(trimmed: string): Promise<CabinetHit[]> {
+    try {
+      if (!navigator.onLine) {
+        const meds = await fetchCachedCabinet();
+        if (!meds) {
+          setCabinetResults([]);
+          return [];
+        }
+        const results = searchCabinetLocally(meds, trimmed);
+        setCabinetResults(results);
+        return results;
+      }
+
+      const response = await fetch(
+        `/api/cabinet/search?q=${encodeURIComponent(trimmed)}`,
+      );
+      const data = (await response.json()) as CabinetSearchResponse;
+      if (!response.ok) {
+        throw new Error(data.error ?? "Cabinet search failed.");
+      }
+      setCabinetResults(data.results);
+      return data.results;
+    } catch {
+      setCabinetResults([]);
+      return [];
+    } finally {
+      setCabinetLoading(false);
+    }
+  }
+
+  async function fetchCatalog(trimmed: string, owned: CabinetHit[]) {
+    setFdaLoading(true);
+    setFdaNeedsConnection(false);
+    setError(null);
+    setNormalizedName(null);
+
+    if (!navigator.onLine) {
+      setFdaNeedsConnection(true);
+      setCatalogResults([]);
+      setFdaLoading(false);
+      return;
+    }
+
+    try {
+      const limit = slim ? CATALOG_LIMIT_PILL : CATALOG_LIMIT_DEFAULT;
+      const response = await fetch(
+        `/api/drugs/search?q=${encodeURIComponent(trimmed)}&limit=${limit}`,
+      );
+      const data = (await response.json()) as FdaSearchResponse;
+      if (!response.ok) {
+        throw new Error(data.error ?? "Search failed. Please try again.");
+      }
+      setNormalizedName(data.normalizedName);
+      const refined = refineCatalogResults(
+        data.results,
+        trimmed,
+        owned.map((med) => ({
+          brandName: med.brandName,
+          genericName: med.genericName,
+        })),
+      );
+      setCatalogResults(slim ? refined.slice(0, CATALOG_LIMIT_PILL) : refined);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Could not reach the search API.";
+      setError(message);
+      setCatalogResults([]);
+    } finally {
+      setFdaLoading(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,86 +143,16 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
     setNormalizedName(null);
     setShowCatalog(false);
     setCabinetLoading(true);
-    setFdaLoading(true);
+    setFdaLoading(false);
 
-    // Cabinet first — do not wait for FDA.
-    const cabinetPromise = (async (): Promise<CabinetHit[]> => {
-      try {
-        if (!navigator.onLine) {
-          const meds = await fetchCachedCabinet();
-          if (!meds) {
-            setCabinetResults([]);
-            return [];
-          }
-          const results = searchCabinetLocally(meds, trimmed);
-          setCabinetResults(results);
-          if (results.length === 0) setShowCatalog(true);
-          return results;
-        }
+    await searchCabinet(trimmed);
+  }
 
-        const response = await fetch(
-          `/api/cabinet/search?q=${encodeURIComponent(trimmed)}`,
-        );
-        const data = (await response.json()) as CabinetSearchResponse;
-        if (!response.ok) {
-          throw new Error(data.error ?? "Cabinet search failed.");
-        }
-        setCabinetResults(data.results);
-        if (data.results.length === 0) {
-          setShowCatalog(true);
-        }
-        return data.results;
-      } catch {
-        setCabinetResults([]);
-        return [];
-      } finally {
-        setCabinetLoading(false);
-      }
-    })();
-
-    const fdaPromise = (async (): Promise<FdaSearchResponse | null> => {
-      if (!navigator.onLine) {
-        setFdaNeedsConnection(true);
-        setCatalogResults([]);
-        setFdaLoading(false);
-        return null;
-      }
-      try {
-        const response = await fetch(
-          `/api/drugs/search?q=${encodeURIComponent(trimmed)}&limit=25`,
-        );
-        const data = (await response.json()) as FdaSearchResponse;
-        if (!response.ok) {
-          throw new Error(data.error ?? "Search failed. Please try again.");
-        }
-        return data;
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Could not reach the search API.";
-        setError(message);
-        return null;
-      } finally {
-        setFdaLoading(false);
-      }
-    })();
-
-    const [owned, fda] = await Promise.all([cabinetPromise, fdaPromise]);
-
-    if (fda) {
-      setNormalizedName(fda.normalizedName);
-      setCatalogResults(
-        refineCatalogResults(
-          fda.results,
-          trimmed,
-          owned.map((med) => ({
-            brandName: med.brandName,
-            genericName: med.genericName,
-          })),
-        ),
-      );
-    } else {
-      setCatalogResults([]);
-    }
+  async function openCatalogLookup() {
+    if (!submittedQuery.trim()) return;
+    setShowCatalog(true);
+    if (catalogResults !== null || fdaLoading) return;
+    await fetchCatalog(submittedQuery.trim(), cabinetResults ?? []);
   }
 
   const hasSearched = submittedQuery.length > 0;
@@ -158,9 +164,9 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
   return (
     <div className="flex w-full flex-col gap-6">
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        {variant === "pill" ? (
+        {slim ? (
           <label htmlFor="drug-search" className="sr-only">
-            Search medications
+            Search your cabinet
           </label>
         ) : (
           <label htmlFor="drug-search" className="text-sm font-medium text-zinc-700">
@@ -173,9 +179,9 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search medicines…"
+            placeholder={slim ? "Search your cabinet…" : "Search medicines…"}
             className={
-              variant === "pill"
+              slim
                 ? "min-h-12 min-w-0 flex-1 rounded-full border-0 bg-[var(--surface-tint)] px-5 text-base text-[var(--text-primary)] outline-none ring-0 transition duration-150 placeholder:text-[var(--text-secondary)] focus:bg-[var(--surface)] focus:ring-2 focus:ring-[var(--primary)]/25"
                 : "min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-base text-[var(--text-primary)] outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
             }
@@ -184,14 +190,14 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
           />
           <button
             type="submit"
-            disabled={cabinetLoading || fdaLoading || !query.trim()}
+            disabled={cabinetLoading || !query.trim()}
             className={
-              variant === "pill"
+              slim
                 ? "inline-flex min-h-12 min-w-12 shrink-0 items-center justify-center btn-primary-fill rounded-full text-sm font-semibold transition duration-150 ease-out active:scale-95 disabled:opacity-50"
                 : "btn-primary-fill shrink-0 rounded-lg px-4 py-3 text-sm font-semibold transition duration-150 ease-out active:scale-[0.98] disabled:opacity-50"
             }
           >
-            {cabinetLoading || fdaLoading ? "…" : variant === "pill" ? "Go" : "Search"}
+            {cabinetLoading ? "…" : slim ? "Go" : "Search"}
           </button>
         </div>
       </form>
@@ -206,6 +212,7 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
       )}
 
       {hasSearched &&
+        !slim &&
         normalizedName &&
         normalizedName.toLowerCase() !== submittedQuery.toLowerCase() && (
           <p className="text-sm text-zinc-600">
@@ -234,24 +241,34 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
                 >
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-zinc-900">{med.brandName}</p>
-                    <p className="truncate text-sm text-zinc-500">
-                      {med.genericName ? `(${med.genericName})` : "Generic name unavailable"}
-                    </p>
-                    <p className="mt-1 truncate text-sm text-zinc-600">
-                      {purposeOneLine(med.purpose)}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-zinc-800">
-                      {med.compartment != null
-                        ? `Compartment ${med.compartment}`
-                        : "Compartment unassigned"}
-                      {med.outOfCabinet && (
-                        <span className="ml-2 rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">
-                          Out
-                        </span>
-                      )}
-                    </p>
+                    {med.genericName ? (
+                      <p className="truncate text-sm text-zinc-500">({med.genericName})</p>
+                    ) : null}
+                    {!slim && (
+                      <>
+                        <p className="mt-1 truncate text-sm text-zinc-600">
+                          {purposeOneLine(med.purpose)}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-zinc-800">
+                          {med.compartment != null
+                            ? `Compartment ${med.compartment}`
+                            : "Compartment unassigned"}
+                          {med.outOfCabinet && (
+                            <span className="ml-2 rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">
+                              Out
+                            </span>
+                          )}
+                        </p>
+                      </>
+                    )}
+                    {slim && med.compartment != null && (
+                      <p className="mt-1 text-sm text-zinc-600">
+                        Bay {med.compartment}
+                        {med.outOfCabinet ? " · out" : ""}
+                      </p>
+                    )}
                   </div>
-                  <ProductTypeBadge productType={med.productType} />
+                  {!slim && <ProductTypeBadge productType={med.productType} />}
                 </Link>
               </li>
             ))}
@@ -259,105 +276,116 @@ export function DrugSearch({ variant = "default" }: { variant?: "default" | "pil
         </section>
       )}
 
-      {hasSearched && cabinetReady && (
-        <div className="flex flex-col gap-3">
-          {!showCatalog && (
-            <button
-              type="button"
-              onClick={() => setShowCatalog(true)}
-              className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 hover:border-[var(--brand-sage-deep)]"
-            >
-              {fdaLoading
-                ? "Looking up more medications…"
-                : catalogCount > 0
-                  ? `Show more (${catalogCount} to add)`
-                  : "Show more"}
-            </button>
-          )}
-
-          {showCatalog && (
-            <section className="flex flex-col gap-2">
-              <div>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                  Add new medication
-                </h2>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Have the bottle? Scanning it at the cabinet is faster.
-                </p>
-              </div>
-
-              {fdaNeedsConnection && (
-                <p
-                  className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-4 text-center text-sm text-amber-950"
-                  role="status"
-                >
-                  Catalog search needs a connection. Reconnect to look up medications
-                  outside your cabinet.
-                </p>
-              )}
-
-              {fdaLoading && !fdaNeedsConnection && (
-                <p className="text-sm text-zinc-500" role="status">
-                  Looking up via RxNorm + openFDA…
-                </p>
-              )}
-
-              {catalogReady &&
-                !fdaLoading &&
-                !fdaNeedsConnection &&
-                catalogCount === 0 && (
-                  <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
-                    No medications found for “{submittedQuery}” — check the spelling on the
-                    label.
-                  </p>
-                )}
-
-              {catalogReady && catalogCount > 0 && (
-                <ul className="flex flex-col gap-2">
-                  {catalogResults!.map((drug, index) => (
-                    <li
-                      key={`${drug.brandName}-${drug.genericName}-${index}`}
-                      className="rounded-lg border border-zinc-200 bg-white px-4 py-3 transition-colors hover:border-[var(--brand-sage-deep)] hover:bg-[var(--brand-sage)]/40"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <Link
-                          href={`/drugs/${encodeURIComponent(drug.brandName)}?from=catalog`}
-                          className="min-w-0 flex-1"
-                        >
-                          <p className="truncate text-lg font-semibold text-zinc-900">
-                            {drug.brandName}
-                            {drug.genericName ? (
-                              <span className="ml-1 text-sm font-normal text-zinc-500">
-                                ({drug.genericName})
-                              </span>
-                            ) : null}
-                          </p>
-                          <p className="mt-1 truncate text-sm text-zinc-600">
-                            {purposeOneLine(drug.purpose)}
-                          </p>
-                        </Link>
-                        <ProductTypeBadge productType={drug.productType} />
-                      </div>
-                      {drug.productType === "OTC" && online && (
-                        <div className="mt-3 flex flex-col gap-1.5 border-t border-zinc-100 pt-3">
-                          <InstacartReorderButton
-                            brandName={drug.brandName}
-                            dosage={drug.dosage}
-                            label="Find on Instacart"
-                          />
-                          <p className="text-[11px] leading-snug text-zinc-500">
-                            Not in your cabinet — opens Instacart. Pillio doesn&apos;t
-                            sell or recommend products.
-                          </p>
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
+      {hasSearched && cabinetReady && cabinetCount === 0 && !showCatalog && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4">
+          <p className="text-sm text-[var(--text-secondary)]">
+            Nothing in your cabinet matches “{submittedQuery}”.
+          </p>
+          <button
+            type="button"
+            onClick={() => void openCatalogLookup()}
+            disabled={fdaLoading}
+            className="rounded-full border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition active:scale-[0.99] disabled:opacity-50"
+          >
+            Look up outside cabinet
+          </button>
         </div>
+      )}
+
+      {hasSearched && cabinetReady && cabinetCount > 0 && !showCatalog && (
+        <button
+          type="button"
+          onClick={() => void openCatalogLookup()}
+          disabled={fdaLoading}
+          className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 hover:border-[var(--brand-sage-deep)] disabled:opacity-50"
+        >
+          Look up outside cabinet
+        </button>
+      )}
+
+      {showCatalog && (
+        <section className="flex flex-col gap-2">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+              Outside your cabinet
+            </h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Have the bottle? Scanning it is faster.
+            </p>
+          </div>
+
+          {fdaNeedsConnection && (
+            <p
+              className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-4 text-center text-sm text-amber-950"
+              role="status"
+            >
+              Catalog search needs a connection. Reconnect to look up medications
+              outside your cabinet.
+            </p>
+          )}
+
+          {fdaLoading && !fdaNeedsConnection && (
+            <p className="text-sm text-zinc-500" role="status">
+              Looking up…
+            </p>
+          )}
+
+          {catalogReady &&
+            !fdaLoading &&
+            !fdaNeedsConnection &&
+            catalogCount === 0 && (
+              <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600">
+                No medications found for “{submittedQuery}” — check the spelling on the
+                label.
+              </p>
+            )}
+
+          {catalogReady && catalogCount > 0 && (
+            <ul className="flex flex-col gap-2">
+              {catalogResults!.map((drug, index) => (
+                <li
+                  key={`${drug.brandName}-${drug.genericName}-${index}`}
+                  className="rounded-lg border border-zinc-200 bg-white px-4 py-3 transition-colors hover:border-[var(--brand-sage-deep)] hover:bg-[var(--brand-sage)]/40"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <Link
+                      href={`/drugs/${encodeURIComponent(drug.brandName)}?from=catalog`}
+                      className="min-w-0 flex-1"
+                    >
+                      <p className="truncate font-semibold text-zinc-900">
+                        {drug.brandName}
+                        {drug.genericName ? (
+                          <span className="ml-1 text-sm font-normal text-zinc-500">
+                            ({drug.genericName})
+                          </span>
+                        ) : null}
+                      </p>
+                      {!slim && (
+                        <p className="mt-1 truncate text-sm text-zinc-600">
+                          {purposeOneLine(drug.purpose)}
+                        </p>
+                      )}
+                    </Link>
+                    {!slim && <ProductTypeBadge productType={drug.productType} />}
+                  </div>
+                  {!slim && drug.productType === "OTC" && online && (
+                    <div className="mt-3 flex flex-col gap-1.5 border-t border-zinc-100 pt-3">
+                      <InstacartReorderButton
+                        brandName={drug.brandName}
+                        dosage={drug.dosage}
+                        label="Find on Instacart"
+                      />
+                      <p className="text-[11px] leading-snug text-zinc-500">
+                        Not in your cabinet — opens Instacart. Pillio doesn&apos;t
+                        sell or recommend products.
+                      </p>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
     </div>
   );

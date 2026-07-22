@@ -1,5 +1,6 @@
 "use client";
 
+import { HouseholdContextChip } from "@/components/HouseholdContextChip";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { TabBar } from "@/components/ui/TabBar";
 import Image from "next/image";
@@ -24,7 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className="app-glass sticky top-0 z-40 border-b"
         style={{ paddingTop: "max(0.35rem, env(safe-area-inset-top))" }}
       >
-        <div className="relative mx-auto flex h-16 max-w-lg items-center justify-center px-4">
+        <div className="relative mx-auto flex h-14 max-w-lg items-center justify-center px-4">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-6 top-1/2 h-10 -translate-y-1/2 rounded-full bg-[var(--header-pill)]"
@@ -46,6 +47,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Pillio
             </span>
           </Link>
+        </div>
+        <div className="mx-auto flex max-w-lg justify-center px-4 pb-2.5">
+          <HouseholdContextChip />
         </div>
       </header>
 

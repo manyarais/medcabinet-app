@@ -1,5 +1,6 @@
 "use client";
 
+import { hasCapability, roleLabel, type MemberRole } from "@/lib/permissions";
 import Link from "next/link";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
@@ -9,6 +10,7 @@ type Membership = {
   name: string;
   role: string;
   canSeeSymptomHistory: boolean;
+  isOwned?: boolean;
 };
 
 type MemberRow = {
@@ -23,6 +25,8 @@ type MemberRow = {
   isLastOwner?: boolean;
 };
 
+type ApproveRole = "family" | "caregiver" | "viewer";
+
 function memberLabel(m: MemberRow): string {
   const name = m.displayName?.trim();
   if (name && name !== "Unknown member") return name;
@@ -31,19 +35,36 @@ function memberLabel(m: MemberRow): string {
   return "Unknown member";
 }
 
-/** Household switcher, invites, and member management for Settings. */
+function asMemberRole(role: string): MemberRole | null {
+  if (
+    role === "owner" ||
+    role === "caregiver" ||
+    role === "family" ||
+    role === "viewer"
+  ) {
+    return role;
+  }
+  return null;
+}
+
+/** Household switcher, invites, rename, and member management for Settings. */
 export function HouseholdSharingPanel() {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteExpires, setInviteExpires] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const active = memberships.find((m) => m.householdId === activeId) ?? memberships[0];
-  const isOwner = active?.role === "owner";
+  const activeRole = active ? asMemberRole(active.role) : null;
+  const canManageMembers =
+    activeRole != null && hasCapability(activeRole, "manageMembers");
+  const canRename =
+    activeRole != null && hasCapability(activeRole, "manageSettings");
 
   const load = useCallback(async () => {
     setError(null);
@@ -56,7 +77,11 @@ export function HouseholdSharingPanel() {
     if (!listRes.ok) throw new Error(listData.error ?? "Could not load households.");
     const list = listData.memberships ?? [];
     setMemberships(list);
-    setActiveId(listData.activeHouseholdId ?? list[0]?.householdId ?? null);
+    const nextActive =
+      listData.activeHouseholdId ?? list[0]?.householdId ?? null;
+    setActiveId(nextActive);
+    const activeRow = list.find((m) => m.householdId === nextActive) ?? list[0];
+    setRenameValue(activeRow?.name ?? "");
 
     const memRes = await fetch("/api/households/members");
     if (memRes.ok) {
@@ -94,6 +119,33 @@ export function HouseholdSharingPanel() {
     });
   }
 
+  function renameHousehold() {
+    const name = renameValue.trim();
+    if (!name) {
+      setError("Name is required.");
+      return;
+    }
+    startTransition(async () => {
+      setError(null);
+      setMessage(null);
+      const res = await fetch("/api/households", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = (await res.json()) as {
+        household?: { name: string };
+        error?: string;
+      };
+      if (!res.ok) {
+        setError(data.error ?? "Could not rename.");
+        return;
+      }
+      setMessage("Household renamed.");
+      await load();
+    });
+  }
+
   function createInvite() {
     startTransition(async () => {
       setError(null);
@@ -113,7 +165,7 @@ export function HouseholdSharingPanel() {
     });
   }
 
-  function approve(id: string, role: "caregiver" | "viewer") {
+  function approve(id: string, role: ApproveRole) {
     startTransition(async () => {
       setError(null);
       const res = await fetch(`/api/households/members/${id}/approve`, {
@@ -194,13 +246,47 @@ export function HouseholdSharingPanel() {
                   : "bg-[var(--accent-cream)] text-[var(--text-primary)] active:scale-[0.99]"
               } disabled:opacity-70`}
             >
+              {!m.isOwned ? "Shared · " : ""}
               {m.name}
               <span className="ml-2 text-xs font-normal text-[var(--text-secondary)]">
-                {m.role}
+                {roleLabel(m.role)}
               </span>
             </button>
           ))}
         </div>
+
+        {canRename && active && (
+          <div className="mt-4 border-t border-[var(--border)] pt-3">
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="font-medium text-[var(--text-primary)]">
+                Household name
+              </span>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={renameValue}
+                  maxLength={60}
+                  disabled={pending}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]/25"
+                />
+                <button
+                  type="button"
+                  disabled={
+                    pending ||
+                    !renameValue.trim() ||
+                    renameValue.trim() === active.name
+                  }
+                  onClick={renameHousehold}
+                  className="shrink-0 rounded-full bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                >
+                  Save
+                </button>
+              </div>
+            </label>
+          </div>
+        )}
+
         <Link
           href="/join"
           className="mt-3 inline-block text-sm font-semibold text-[var(--primary)]"
@@ -209,14 +295,19 @@ export function HouseholdSharingPanel() {
         </Link>
       </div>
 
-      {isOwner && (
+      {canManageMembers && (
         <>
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-[var(--shadow-soft)]">
             <p className="text-[16px] font-semibold text-[var(--text-primary)]">
-              Invite caregivers
+              Invite people
             </p>
             <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
-              Generate a 6-digit code (expires in 48 hours)
+              Generate a 6-digit code (expires in 48 hours). Approve them as
+              family, caregiver, or visitor.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+              Owner &amp; caregiver: full manage. Family: check doses &amp; out/back.
+              Visitor: view only. Symptom history is optional (except owners).
             </p>
             <button
               type="button"
@@ -243,11 +334,11 @@ export function HouseholdSharingPanel() {
               <p className="text-[16px] font-semibold text-amber-950 dark:text-amber-50">
                 Pending requests
               </p>
-              <ul className="mt-2 flex flex-col gap-2">
+              <ul className="mt-2 flex flex-col gap-3">
                 {pendingMembers.map((m) => (
                   <li
                     key={m.id}
-                    className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                    className="flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-[var(--text-primary)]">
@@ -259,12 +350,20 @@ export function HouseholdSharingPanel() {
                         </p>
                       )}
                     </div>
-                    <span className="flex gap-2">
+                    <span className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => approve(m.id, "family")}
+                        className="rounded-full bg-[var(--primary)] px-3 py-1 text-xs font-semibold text-white"
+                      >
+                        Family
+                      </button>
                       <button
                         type="button"
                         disabled={pending}
                         onClick={() => approve(m.id, "caregiver")}
-                        className="rounded-full bg-[var(--primary)] px-3 py-1 text-xs font-semibold text-white"
+                        className="rounded-full border border-[var(--border)] bg-white px-3 py-1 text-xs font-semibold"
                       >
                         Caregiver
                       </button>
@@ -274,7 +373,7 @@ export function HouseholdSharingPanel() {
                         onClick={() => approve(m.id, "viewer")}
                         className="rounded-full border border-[var(--border)] bg-white px-3 py-1 text-xs font-semibold"
                       >
-                        Viewer
+                        Visitor
                       </button>
                     </span>
                   </li>
@@ -317,14 +416,15 @@ export function HouseholdSharingPanel() {
                         onChange={(e) => patchMember(m.id, { role: e.target.value })}
                         className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm"
                       >
-                        <option value="owner">owner</option>
-                        <option value="caregiver">caregiver</option>
-                        <option value="viewer">viewer</option>
+                        <option value="owner">Owner</option>
+                        <option value="caregiver">Caregiver</option>
+                        <option value="family">Family member</option>
+                        <option value="viewer">Visitor</option>
                       </select>
                       <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
                         <input
                           type="checkbox"
-                          checked={m.canSeeSymptomHistory}
+                          checked={m.canSeeSymptomHistory || m.role === "owner"}
                           disabled={pending || m.role === "owner"}
                           onChange={(e) =>
                             patchMember(m.id, {

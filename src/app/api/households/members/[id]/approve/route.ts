@@ -16,7 +16,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const role = body.role?.trim();
     if (!role || !isMemberRole(role) || role === "owner") {
       return NextResponse.json(
-        { error: "role must be caregiver or viewer." },
+        { error: "role must be family, caregiver, or visitor." },
         { status: 400 },
       );
     }

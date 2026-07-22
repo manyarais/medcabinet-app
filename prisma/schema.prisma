@@ -34,7 +34,7 @@ model HouseholdMember {
   householdId           String
   household             Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   clerkUserId           String
-  role                  String // "owner" | "caregiver" | "viewer"
+  role                  String // "owner" | "caregiver" | "family" | "viewer"
   status                String // "pending" | "active"
   canSeeSymptomHistory  Boolean   @default(false)
   /// Snapshotted from Clerk at join/approve / refreshed on sign-in.

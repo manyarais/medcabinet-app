@@ -1,6 +1,6 @@
 /** Role / capability checks for household sharing. */
 
-export type MemberRole = "owner" | "caregiver" | "viewer";
+export type MemberRole = "owner" | "caregiver" | "family" | "viewer";
 
 export type Capability =
   | "read"
@@ -12,8 +12,26 @@ export type Capability =
   | "manageMembers"
   | "seeSymptomHistory";
 
+const ROLE_LABELS: Record<MemberRole, string> = {
+  owner: "Owner",
+  caregiver: "Caregiver",
+  family: "Family member",
+  viewer: "Visitor",
+};
+
 export function isMemberRole(value: string): value is MemberRole {
-  return value === "owner" || value === "caregiver" || value === "viewer";
+  return (
+    value === "owner" ||
+    value === "caregiver" ||
+    value === "family" ||
+    value === "viewer"
+  );
+}
+
+/** Human-readable role for UI (viewer → Visitor). */
+export function roleLabel(role: string): string {
+  if (isMemberRole(role)) return ROLE_LABELS[role];
+  return role;
 }
 
 export function hasCapability(
@@ -26,12 +44,12 @@ export function hasCapability(
       return true;
     case "checkDose":
     case "toggleOut":
-      return role === "owner" || role === "caregiver";
+      return role === "owner" || role === "caregiver" || role === "family";
     case "mutateMeds":
     case "mutateSchedule":
     case "manageSettings":
     case "manageMembers":
-      return role === "owner";
+      return role === "owner" || role === "caregiver";
     case "seeSymptomHistory":
       return role === "owner" || Boolean(opts?.canSeeSymptomHistory);
     default:

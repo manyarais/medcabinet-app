@@ -50,8 +50,8 @@ export default function JoinHouseholdPage() {
         Join a household
       </h1>
       <p className="mt-2 text-sm text-[var(--text-secondary)]">
-        Enter the 6-digit invite code from the household owner. They&apos;ll
-        approve you as a caregiver or viewer.
+        Enter the 6-digit invite code from the household. They&apos;ll approve
+        you as a family member, caregiver, or visitor.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">

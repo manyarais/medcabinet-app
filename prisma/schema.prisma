@@ -153,6 +153,8 @@ model ReminderSettings {
   quietEnd                String    @default("07:00") // HH:MM local (may be next morning)
   /// If true, overdue doses still trigger calls during quiet hours.
   callOverdueDuringQuiet  Boolean   @default(true)
+  /// E.164 phone that receives voice reminders for this household (e.g. +15551234567).
+  reminderPhone           String?
 }
 
 /// Dedupes outbound reminder calls per dose slot per day per household.

@@ -1,7 +1,12 @@
-// Polls /api/reminders/dispatch so Twilio overdue calls work with the browser closed.
-// Usage (with `npm run dev` already running):
+// Polls /api/reminders/dispatch so Twilio overdue calls work without the browser.
+//
+// Local:
 //   npm run reminders:watch
-
+//
+// Point at Vercel for a live demo (Twilio keys live on Vercel) — PowerShell:
+//   $env:REMINDER_DISPATCH_URL="https://YOUR-APP.vercel.app"
+//   npm run reminders:watch
+//
 const BASE = process.env.REMINDER_DISPATCH_URL ?? "http://localhost:3000";
 const SECRET = process.env.REMINDER_DISPATCH_SECRET?.trim() ?? "";
 const INTERVAL_MS = Number(process.env.REMINDER_DISPATCH_INTERVAL_MS ?? 60_000);

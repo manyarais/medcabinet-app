@@ -1,10 +1,12 @@
 // POST /api/reminders/call — place a Twilio Voice reminder (test or named dose).
 // GET  /api/reminders/call — whether Twilio env is configured (no secrets).
 
+import { getReminderSettings } from "@/lib/reminderSettings";
 import {
   buildReminderSayText,
   isTwilioConfigured,
   placeReminderCall,
+  resolveReminderToNumber,
 } from "@/lib/twilioCall";
 import { NextRequest, NextResponse } from "next/server";
 import { requireCapability } from "@/lib/household";
@@ -16,11 +18,12 @@ type Body = {
 };
 
 export async function GET() {
-  await requireCapability("manageSettings");
+  const { household } = await requireCapability("manageSettings");
+  const settings = await getReminderSettings(household.id);
+  const to = resolveReminderToNumber(settings.reminderPhone);
   return NextResponse.json({
     configured: isTwilioConfigured(),
-    // Masked hint only — never return numbers/tokens.
-    hasPhone: Boolean(process.env.REMINDER_PHONE_NUMBER?.trim()),
+    hasPhone: Boolean(to),
   });
 }
 
@@ -44,6 +47,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const settings = await getReminderSettings(household.id);
   const sayText = await buildReminderSayText({
     householdId: household.id,
     test,
@@ -51,7 +55,9 @@ export async function POST(request: NextRequest) {
     scheduledTime,
   });
 
-  const result = await placeReminderCall(sayText);
+  const result = await placeReminderCall(sayText, {
+    toNumber: settings.reminderPhone,
+  });
   if (!result.ok) {
     const status = result.status === 401 || result.status === 403 ? 502 : 400;
     return NextResponse.json({ error: result.error }, { status });

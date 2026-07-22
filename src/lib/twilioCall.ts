@@ -6,30 +6,45 @@ import {
   applyCallTemplate,
   DEFAULT_CALL_TEMPLATE,
   getReminderSettings,
+  normalizeReminderPhone,
 } from "@/lib/reminderSettings";
 
-export type TwilioConfig = {
+export type TwilioAccountConfig = {
   accountSid: string;
   authToken: string;
   fromNumber: string;
+};
+
+export type TwilioConfig = TwilioAccountConfig & {
   toNumber: string;
 };
 
-export function getTwilioConfig(): TwilioConfig | null {
+/** SID + token + From number — enough to place calls once a To number is known. */
+export function getTwilioAccountConfig(): TwilioAccountConfig | null {
   const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim() ?? "";
   const authToken = process.env.TWILIO_AUTH_TOKEN?.trim() ?? "";
   const fromNumber = process.env.TWILIO_FROM_NUMBER?.trim() ?? "";
-  const toNumber = process.env.REMINDER_PHONE_NUMBER?.trim() ?? "";
 
-  if (!accountSid || !authToken || !fromNumber || !toNumber) {
+  if (!accountSid || !authToken || !fromNumber) {
     return null;
   }
 
-  return { accountSid, authToken, fromNumber, toNumber };
+  return { accountSid, authToken, fromNumber };
 }
 
 export function isTwilioConfigured(): boolean {
-  return getTwilioConfig() != null;
+  return getTwilioAccountConfig() != null;
+}
+
+/** Resolve To number: household setting → env fallback. */
+export function resolveReminderToNumber(
+  householdPhone: string | null | undefined,
+): string | null {
+  return (
+    normalizeReminderPhone(householdPhone) ??
+    normalizeReminderPhone(process.env.REMINDER_PHONE_NUMBER) ??
+    null
+  );
 }
 
 function escapeXml(value: string): string {
@@ -80,25 +95,39 @@ export type PlaceCallResult =
   | { ok: true; callSid: string; to: string }
   | { ok: false; error: string; status?: number };
 
-export async function placeReminderCall(sayText: string): Promise<PlaceCallResult> {
-  const config = getTwilioConfig();
-  if (!config) {
+export async function placeReminderCall(
+  sayText: string,
+  opts?: { toNumber?: string | null },
+): Promise<PlaceCallResult> {
+  const account = getTwilioAccountConfig();
+  if (!account) {
     return {
       ok: false,
       error:
-        "Twilio is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER, and REMINDER_PHONE_NUMBER in .env.",
+        "Twilio is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER.",
+    };
+  }
+
+  const toNumber = resolveReminderToNumber(opts?.toNumber);
+  if (!toNumber) {
+    return {
+      ok: false,
+      error:
+        "No reminder phone set. Add one in Settings → Phone call reminders (or set REMINDER_PHONE_NUMBER).",
     };
   }
 
   const twiml = `<Response><Say>${escapeXml(sayText)}</Say></Response>`;
   const body = new URLSearchParams({
-    To: config.toNumber,
-    From: config.fromNumber,
+    To: toNumber,
+    From: account.fromNumber,
     Twiml: twiml,
   });
 
-  const auth = Buffer.from(`${config.accountSid}:${config.authToken}`).toString("base64");
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${config.accountSid}/Calls.json`;
+  const auth = Buffer.from(`${account.accountSid}:${account.authToken}`).toString(
+    "base64",
+  );
+  const url = `https://api.twilio.com/2010-04-01/Accounts/${account.accountSid}/Calls.json`;
 
   let response: Response;
   try {
@@ -132,5 +161,5 @@ export async function placeReminderCall(sayText: string): Promise<PlaceCallResul
     return { ok: false, error: "Twilio did not return a call SID." };
   }
 
-  return { ok: true, callSid: json.sid, to: config.toNumber };
+  return { ok: true, callSid: json.sid, to: toNumber };
 }

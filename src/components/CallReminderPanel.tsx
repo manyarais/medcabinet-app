@@ -1,6 +1,6 @@
 "use client";
 
-// Twilio Voice settings: test call, custom message, quiet hours, server auto-call.
+// Twilio Voice settings: reminder phone, test call, quiet hours, server auto-call.
 
 import { useEffect, useState } from "react";
 
@@ -11,6 +11,7 @@ type Settings = {
   quietStart: string;
   quietEnd: string;
   callOverdueDuringQuiet: boolean;
+  reminderPhone: string | null;
 };
 
 const DEFAULT_TEMPLATE =
@@ -18,6 +19,7 @@ const DEFAULT_TEMPLATE =
 
 export function CallReminderPanel() {
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [hasPhone, setHasPhone] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -31,11 +33,18 @@ export function CallReminderPanel() {
           fetch("/api/reminders/call"),
           fetch("/api/reminders/settings"),
         ]);
-        const callJson = (await callRes.json()) as { configured?: boolean };
+        const callJson = (await callRes.json()) as {
+          configured?: boolean;
+          hasPhone?: boolean;
+        };
         setConfigured(Boolean(callJson.configured));
+        setHasPhone(Boolean(callJson.hasPhone));
         if (settingsRes.ok) {
           const s = (await settingsRes.json()) as { settings: Settings };
-          setSettings(s.settings);
+          setSettings({
+            ...s.settings,
+            reminderPhone: s.settings.reminderPhone ?? "",
+          });
         }
       } catch {
         setConfigured(false);
@@ -119,14 +128,23 @@ export function CallReminderPanel() {
       const response = await fetch("/api/reminders/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next),
+        body: JSON.stringify({
+          ...next,
+          reminderPhone: next.reminderPhone?.trim() || null,
+        }),
       });
       const json = (await response.json()) as { error?: string; settings?: Settings };
       if (!response.ok) {
         setError(json.error ?? "Could not save settings.");
         return;
       }
-      if (json.settings) setSettings(json.settings);
+      if (json.settings) {
+        setSettings({
+          ...json.settings,
+          reminderPhone: json.settings.reminderPhone ?? "",
+        });
+        setHasPhone(Boolean(json.settings.reminderPhone));
+      }
       setMessage("Reminder settings saved.");
     } catch {
       setError("Network error while saving settings.");
@@ -140,19 +158,22 @@ export function CallReminderPanel() {
     setSettings({ ...settings, [key]: value });
   }
 
+  const canCall = configured === true && hasPhone;
+
   return (
     <div className="flex flex-col gap-3 rounded-2xl bg-[var(--surface)] px-4 py-4 shadow-[var(--shadow-soft)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-[var(--text-primary)]">Phone call reminders</p>
           <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-secondary)]">
-            Twilio Voice. Reminder only — not medical advice.
+            Twilio Voice. Reminder only — not medical advice. Each household
+            sets its own number below.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            disabled={busy || configured === false}
+            disabled={busy || !canCall}
             onClick={() => void handleTestCall()}
             className="btn-primary-fill rounded-full px-3.5 py-2 text-xs font-semibold transition duration-150 ease-out active:scale-95 disabled:opacity-50"
           >
@@ -160,7 +181,7 @@ export function CallReminderPanel() {
           </button>
           <button
             type="button"
-            disabled={busy || configured === false}
+            disabled={busy || !canCall}
             onClick={() => void handleCallOverdueAgain()}
             className="rounded-full bg-[var(--surface-tint)] px-3.5 py-2 text-xs font-semibold text-[var(--text-primary)] transition duration-150 active:scale-95 disabled:opacity-50"
           >
@@ -171,12 +192,38 @@ export function CallReminderPanel() {
 
       {configured === false && (
         <p className="rounded-2xl bg-[var(--warning-bg)] px-3 py-2 text-xs text-[var(--warning-text)]">
-          Phone calling is not configured on this server.
+          Phone calling is not configured on this server (missing Twilio account
+          keys).
         </p>
       )}
 
-      {settings && configured && (
+      {configured && settings && (
         <>
+          <label className="flex flex-col gap-1.5 text-xs">
+            <span className="font-semibold text-[var(--text-primary)]">
+              Reminder phone (this household)
+            </span>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="+1 555 123 4567"
+              value={settings.reminderPhone ?? ""}
+              onChange={(e) => update("reminderPhone", e.target.value)}
+              className="rounded-2xl border-0 bg-[var(--surface-tint)] px-3 py-3 text-sm text-[var(--text-primary)] outline-none focus:ring-2 focus:ring-[var(--primary)]/25"
+            />
+            <span className="text-[11px] leading-snug text-[var(--text-secondary)]">
+              Voice calls go here. On a Twilio trial, the number must be verified
+              in your Twilio console first.
+            </span>
+          </label>
+
+          {configured && !hasPhone && !(settings.reminderPhone ?? "").trim() && (
+            <p className="rounded-2xl bg-[var(--warning-bg)] px-3 py-2 text-xs text-[var(--warning-text)]">
+              Save a reminder phone above, then use Test call.
+            </p>
+          )}
+
           <label className="flex items-start gap-2.5 text-xs text-[var(--text-primary)]">
             <input
               type="checkbox"
@@ -187,7 +234,9 @@ export function CallReminderPanel() {
             <span>
               <span className="font-semibold">Server auto-call for overdue doses</span>
               <span className="mt-0.5 block text-[var(--text-secondary)]">
-                Places reminder calls even when the browser is closed.
+                Needs a dispatcher every ~1 min (laptop watcher pointed at
+                Vercel, or an external cron). Without that, use Test call /
+                Call overdue.
               </span>
             </span>
           </label>

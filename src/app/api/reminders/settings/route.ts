@@ -1,9 +1,11 @@
-// GET/PATCH /api/reminders/settings — call message, quiet hours, server auto-call.
+// GET/PATCH /api/reminders/settings — call message, quiet hours, server auto-call, phone.
 
 import { isValidDoseTime, normalizeDoseTime } from "@/lib/doseTimes";
 import {
   DEFAULT_CALL_TEMPLATE,
   getReminderSettings,
+  isValidReminderPhone,
+  normalizeReminderPhone,
   type ReminderSettingsDto,
 } from "@/lib/reminderSettings";
 import { prisma } from "@/lib/db";
@@ -67,10 +69,41 @@ export async function PATCH(request: NextRequest) {
     data.callOverdueDuringQuiet = Boolean(body.callOverdueDuringQuiet);
   }
 
+  if (body.reminderPhone !== undefined) {
+    const raw = body.reminderPhone?.trim() ?? "";
+    if (!isValidReminderPhone(raw)) {
+      return NextResponse.json(
+        {
+          error:
+            "reminderPhone must be a valid phone (e.g. +15551234567 or 5551234567).",
+        },
+        { status: 400 },
+      );
+    }
+    data.reminderPhone = normalizeReminderPhone(raw);
+  }
+
   await prisma.reminderSettings.upsert({
     where: { householdId: household.id },
-    create: { householdId: household.id, ...data },
-    update: data,
+    create: {
+      householdId: household.id,
+      serverAutoCall: data.serverAutoCall,
+      callMessageTemplate: data.callMessageTemplate,
+      quietHoursEnabled: data.quietHoursEnabled,
+      quietStart: data.quietStart,
+      quietEnd: data.quietEnd,
+      callOverdueDuringQuiet: data.callOverdueDuringQuiet,
+      reminderPhone: data.reminderPhone,
+    },
+    update: {
+      serverAutoCall: data.serverAutoCall,
+      callMessageTemplate: data.callMessageTemplate,
+      quietHoursEnabled: data.quietHoursEnabled,
+      quietStart: data.quietStart,
+      quietEnd: data.quietEnd,
+      callOverdueDuringQuiet: data.callOverdueDuringQuiet,
+      reminderPhone: data.reminderPhone,
+    },
   });
 
   return NextResponse.json({ settings: await getReminderSettings(household.id) });

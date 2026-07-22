@@ -13,7 +13,30 @@ export type ReminderSettingsDto = {
   quietStart: string;
   quietEnd: string;
   callOverdueDuringQuiet: boolean;
+  /** E.164 or empty — who gets voice reminders for this household. */
+  reminderPhone: string | null;
 };
+
+/**
+ * Normalize US-centric phone input to E.164 (+1…).
+ * Accepts "+15551234567", "5551234567", "1-555-123-4567", etc.
+ */
+export function normalizeReminderPhone(raw: string | null | undefined): string | null {
+  const trimmed = raw?.trim() ?? "";
+  if (!trimmed) return null;
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (trimmed.startsWith("+") && digits.length >= 10 && digits.length <= 15) {
+    return `+${digits}`;
+  }
+  return null;
+}
+
+export function isValidReminderPhone(raw: string | null | undefined): boolean {
+  if (raw == null || raw.trim() === "") return true; // empty = clear
+  return normalizeReminderPhone(raw) != null;
+}
 
 export async function getReminderSettings(householdId: string): Promise<ReminderSettingsDto> {
   const row =
@@ -29,6 +52,7 @@ export async function getReminderSettings(householdId: string): Promise<Reminder
     quietStart: normalizeDoseTime(row.quietStart) || "22:00",
     quietEnd: normalizeDoseTime(row.quietEnd) || "07:00",
     callOverdueDuringQuiet: row.callOverdueDuringQuiet,
+    reminderPhone: row.reminderPhone?.trim() || null,
   };
 }
 

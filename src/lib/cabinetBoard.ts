@@ -1,10 +1,10 @@
-// Talking to the CabinetLights ESP32 (8 strip/switch units) and probing
-// device health. Compartment N in the app = board unit N-1.
+// Talking to the CabinetLights ESP32 (5 strip/switch units on the perf
+// board) and probing device health. Compartment N in the app = board unit N-1.
 
 const CABINET_URL_CANDIDATES = [
   ...(process.env.CABINET_URL ?? "").split(",").map((u) => u.trim()).filter(Boolean),
-  "http://172.20.10.2",    // its spot on the iPhone hotspot
-  "http://10.103.210.34",  // its spot on AirPennNet-Device
+  "http://172.20.10.2",     // its spot on the iPhone hotspot
+  "http://10.103.210.211",  // perf board's spot on AirPennNet-Device (2026-07-22)
   "http://cabinet.local",
 ];
 
@@ -38,7 +38,7 @@ export async function flashCompartment(compartment: number): Promise<boolean> {
 }
 
 /** Reset every strip to solid red (empty) — used when the cabinet is cleared. */
-export async function resetAllLights(units = 8): Promise<void> {
+export async function resetAllLights(units = 5): Promise<void> {
   for (let unit = 0; unit < units; unit++) {
     await tryCabinet(`/off?unit=${unit}`, 2000);
   }

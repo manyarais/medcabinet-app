@@ -279,6 +279,24 @@ export function scanTokenFromRequest(request: Request): string | null {
   return request.headers.get("x-scan-token") ?? request.headers.get("X-Scan-Token");
 }
 
+/**
+ * ESP32 / machine clients authenticate with `x-scan-token`.
+ * In-app UI (phone camera, confirm, clear) uses the signed-in household instead.
+ */
+export async function resolveScanHousehold(
+  request: Request,
+  capability: Capability = "mutateMeds",
+): Promise<HouseholdRow> {
+  const token = scanTokenFromRequest(request);
+  if (token) {
+    const household = await getHouseholdByScanToken(token);
+    if (!household) unauthorized();
+    return household;
+  }
+  const { household } = await requireCapability(capability);
+  return household;
+}
+
 export function randomInviteCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }

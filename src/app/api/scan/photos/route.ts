@@ -14,15 +14,14 @@ import {
   parseTranscript,
   readPhotosWithOpenAI,
 } from "@/lib/scanner";
-import { getHouseholdByScanToken, scanTokenFromRequest } from "@/lib/household";
+import { resolveScanHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 const MAX_PHOTOS = 6;
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024; // after base64 decode
 
 export async function POST(request: NextRequest) {
-  const household = await getHouseholdByScanToken(scanTokenFromRequest(request));
-  if (!household) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const household = await resolveScanHousehold(request);
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(

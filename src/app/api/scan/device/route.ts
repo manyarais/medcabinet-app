@@ -6,12 +6,11 @@
 import { logActivity } from "@/lib/activity";
 import { saveScanPhotos } from "@/lib/scanPhotos";
 import { intakeScan, notifyScanDone, parseTranscript, runDeviceScan } from "@/lib/scanner";
-import { getHouseholdByScanToken, scanTokenFromRequest } from "@/lib/household";
+import { resolveScanHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  const household = await getHouseholdByScanToken(scanTokenFromRequest(request));
-  if (!household) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const household = await resolveScanHousehold(request);
   let transcript: string;
   let deviceUrl: string;
   let photos: Buffer[];

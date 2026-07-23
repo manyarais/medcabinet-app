@@ -10,15 +10,14 @@ import { logActivity } from "@/lib/activity";
 import { resetAllLights } from "@/lib/cabinetBoard";
 import { intakeScan } from "@/lib/scanner";
 import { prisma } from "@/lib/db";
-import { getHouseholdByScanToken, scanTokenFromRequest } from "@/lib/household";
+import { resolveScanHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 // DELETE /api/scan — the Clear button: wipe EVERYTHING (all medications,
 // schedules, history) and reset every cabinet strip back to red/empty, so the
 // app and the physical cabinet both start from a blank slate.
 export async function DELETE(request: NextRequest) {
-  const household = await getHouseholdByScanToken(scanTokenFromRequest(request));
-  if (!household) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const household = await resolveScanHousehold(request, "manageSettings");
   await prisma.reminderCallLog.deleteMany({ where: { householdId: household.id } });
   await prisma.usageLog.deleteMany({ where: { householdId: household.id } });
   await prisma.prescription.deleteMany({ where: { householdId: household.id } });
@@ -39,8 +38,7 @@ type ScanBody = {
 };
 
 export async function POST(request: NextRequest) {
-  const household = await getHouseholdByScanToken(scanTokenFromRequest(request));
-  if (!household) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const household = await resolveScanHousehold(request);
   let body: ScanBody;
   try {
     body = (await request.json()) as ScanBody;

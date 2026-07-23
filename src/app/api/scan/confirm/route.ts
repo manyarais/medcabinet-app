@@ -9,7 +9,7 @@ import { prisma } from "@/lib/db";
 import { nextFreeCompartment, notifyScanDone } from "@/lib/scanner";
 import { sizeForCompartment } from "@/lib/compartments";
 import { ensureRxCalendarSchedule } from "@/lib/rxScheduleFromLabel";
-import { getHouseholdByScanToken, scanTokenFromRequest } from "@/lib/household";
+import { resolveScanHousehold } from "@/lib/household";
 import { NextRequest, NextResponse } from "next/server";
 
 const EDITABLE_FIELDS = [
@@ -32,8 +32,7 @@ type Body = {
 };
 
 export async function POST(request: NextRequest) {
-  const household = await getHouseholdByScanToken(scanTokenFromRequest(request));
-  if (!household) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const household = await resolveScanHousehold(request);
   let body: Body;
   try {
     body = (await request.json()) as Body;
